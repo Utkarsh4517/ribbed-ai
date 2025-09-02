@@ -8,7 +8,8 @@ import {
   Alert,
   Dimensions 
 } from 'react-native';
-import { RouteProp } from '@react-navigation/native';
+import { RouteProp, useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../types/navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppContext } from '../contexts/AppContext';
@@ -16,10 +17,14 @@ import { useAppContext } from '../contexts/AppContext';
 const { width: screenWidth } = Dimensions.get('window');
 const maxImageWidth = (screenWidth * 0.85) / 2 - 10;
 
+type InfluencerScreenNavigationProp = StackNavigationProp<MainStackParamList, 'InfluencerScreen'>;
+
 export default function InfluencerScreen({ route }: { route: RouteProp<MainStackParamList, 'InfluencerScreen'> }) {
   const { avatar } = route.params;
+  const navigation = useNavigation<InfluencerScreenNavigationProp>();
   const { generateScenesForAvatar, getScenesForAvatar } = useAppContext();
   const { scenes, totalGenerated, isLoading, hasGenerated } = getScenesForAvatar(avatar.imageUrl || '');
+
   useEffect(() => {
     if (avatar.imageUrl && !hasGenerated && !isLoading) {
       handleGenerateScenes();
@@ -40,12 +45,22 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
     }
   };
 
+  const handleSceneSelect = (scene: any) => {
+    navigation.navigate('ScriptScreen', { scene });
+  };
+
   const renderSceneGrid = () => {
     return (
       <View className="mt-4">
         <View className="flex-row flex-wrap justify-between">
           {scenes.map((scene) => (
-            <View key={scene.id} className="mb-4" style={{ width: maxImageWidth }}>
+            <TouchableOpacity 
+              key={scene.id} 
+              className="mb-4" 
+              style={{ width: maxImageWidth }}
+              onPress={() => handleSceneSelect(scene)}
+              activeOpacity={0.8}
+            >
               {scene.imageUrl ? (
                 <View>
                   <Image
@@ -85,7 +100,7 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
                   </Text>
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </View>
@@ -99,6 +114,7 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
           <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
             <View className="flex-row items-center justify-between mb-3">
               <Text className="text-lg font-semibold text-gray-800">Generated Scenes</Text>
+              <Text className="text-sm text-gray-500">Tap to select</Text>
             </View>
             {renderSceneGrid()}
           </View>

@@ -2,9 +2,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/InfluencerScreen';
 import { MainStackParamList } from '../types/navigation';
-import SettingsScreen from '../screens/SceneScreen';
 import InfluencerScreen from '../screens/InfluencerScreen';
-import SceneScreen from '../screens/SceneScreen';
 import QueueScreen from '../screens/QueueScreen';
 import ScriptScreen from '../screens/ScriptScreen';
 
@@ -27,11 +25,7 @@ export default function MainStackNavigator() {
         component={InfluencerScreen}
        
       />
-      <Stack.Screen
-        name="SceneScreen"
-        component={SceneScreen}
-       
-      />
+     
       <Stack.Screen
         name="ScriptScreen"
         component={ScriptScreen}
