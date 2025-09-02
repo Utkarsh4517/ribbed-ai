@@ -5,17 +5,20 @@ export interface CreateAvatarRequest {
 }
 
 export interface Avatar {
+  id: number;
   name: string;
   appearance: string;
   imageUrl?: string;
+  variation: number;
+  error?: string;
 }
 
 export interface CreateAvatarResponse {
   success: boolean;
-  avatar: Avatar;
+  avatars: Avatar[];
   originalPrompt: string;
-  rawResponse?: string;
-  imageUrl?: string;
+  totalGenerated: number;
+  totalRequested: number;
 }
 
 export interface HealthResponse {

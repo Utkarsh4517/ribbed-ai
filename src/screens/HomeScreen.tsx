@@ -19,18 +19,19 @@ interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
-  avatar?: Avatar;
-  imageUrl?: string;
+  avatars?: Avatar[];
+  totalGenerated?: number;
+  totalRequested?: number;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
-const maxImageWidth = screenWidth * 0.7;
+const maxImageWidth = (screenWidth * 0.85) / 2 - 10; 
 
 export default function HomeScreen() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hi! I'm here to help you create amazing avatar images using Google Gemini 2.5 Flash Image via Replicate. Describe the kind of avatar you'd like me to generate!",
+      text: "Hi! I'm here to help you create amazing avatar images using Google Gemini 2.5 Flash Image via Replicate. I'll generate 6 different variations for each prompt you give me!",
       isUser: false,
       timestamp: new Date()
     }
@@ -70,19 +71,21 @@ export default function HomeScreen() {
     try {
       const data = await apiService.createAvatar(userMessage.text);
 
-      if (data.success && data.imageUrl) {
+      if (data.success && data.avatars) {
         const botMessage: Message = {
           id: (Date.now() + 1).toString(),
-          text: `Great! I've generated an avatar image for you based on your request: "${userMessage.text}"`,
+          text: `Great! I've generated ${data.totalGenerated} avatar variations for you based on: "${userMessage.text}"`,
           isUser: false,
           timestamp: new Date(),
-          imageUrl: data.imageUrl
+          avatars: data.avatars,
+          totalGenerated: data.totalGenerated,
+          totalRequested: data.totalRequested
         };
 
         setMessages(prev => [...prev, botMessage]);
         setIsConnected(true);
       } else {
-        throw new Error('Failed to create avatar image');
+        throw new Error('Failed to create avatar images');
       }
     } catch (error) {
       console.error('Error:', error);
@@ -90,7 +93,7 @@ export default function HomeScreen() {
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "Sorry, I'm having trouble generating the avatar image. Please make sure the backend is running on localhost:3000 and your Replicate API token is configured.",
+        text: "Sorry, I'm having trouble generating the avatar images. Please make sure the backend is running on localhost:3000 and your Replicate API token is configured.",
         isUser: false,
         timestamp: new Date()
       };
@@ -124,19 +127,68 @@ export default function HomeScreen() {
     }
   };
 
+  const renderAvatarGrid = (avatars: Avatar[]) => {
+    return (
+      <View className="mt-3">
+        <View className="flex-row flex-wrap justify-between">
+          {avatars.map((avatar) => (
+            <View key={avatar.id} className="mb-3" style={{ width: maxImageWidth }}>
+              {avatar.imageUrl ? (
+                <View>
+                  <Image
+                    source={{ uri: avatar.imageUrl }}
+                    style={{
+                      width: maxImageWidth,
+                      height: maxImageWidth,
+                      borderRadius: 8,
+                      backgroundColor: '#f3f4f6'
+                    }}
+                    resizeMode="cover"
+                    onError={(error) => {
+                      console.error(`Avatar ${avatar.id} failed to load:`, error.nativeEvent.error);
+                    }}
+                  />
+                  <Text className="text-xs text-gray-600 mt-1 text-center">
+                    Variation {avatar.variation}
+                  </Text>
+                </View>
+              ) : (
+                <View 
+                  style={{
+                    width: maxImageWidth,
+                    height: maxImageWidth,
+                    borderRadius: 8,
+                    backgroundColor: '#f3f4f6'
+                  }}
+                  className="items-center justify-center border border-gray-200"
+                >
+                  <Text className="text-xs text-gray-500 text-center px-2">
+                    Failed to generate
+                  </Text>
+                  <Text className="text-xs text-gray-600 mt-1">
+                    Variation {avatar.variation}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   const renderMessage = (message: Message) => (
     <View
       key={message.id}
       className={`mb-4 ${message.isUser ? 'items-end' : 'items-start'}`}
     >
       <View
-        className={`max-w-[85%] px-4 py-3 rounded-2xl ${
+        className={`max-w-[90%] px-4 py-3 rounded-2xl ${
           message.isUser
             ? 'bg-blue-500 rounded-br-md'
             : 'bg-white rounded-bl-md shadow-sm border border-gray-100'
         }`}
       >
-        {/* Text content */}
         <Text
           className={`text-base leading-6 ${
             message.isUser ? 'text-white' : 'text-gray-800'
@@ -145,22 +197,12 @@ export default function HomeScreen() {
           {message.text}
         </Text>
         
-        {message.imageUrl && (
-          <View className="mt-3">
-            <Image
-              source={{ uri: message.imageUrl }}
-              style={{
-                width: maxImageWidth,
-                height: maxImageWidth,
-                borderRadius: 12,
-                backgroundColor: '#f3f4f6'
-              }}
-              resizeMode="cover"
-              onError={(error) => {
-                console.error('Image failed to load:', error.nativeEvent.error);
-              }}
-            />
-          </View>
+        {message.avatars && renderAvatarGrid(message.avatars)}
+        
+        {message.totalGenerated !== undefined && (
+          <Text className="text-xs text-gray-500 mt-2">
+            Generated {message.totalGenerated} out of {message.totalRequested} variations
+          </Text>
         )}
       </View>
       
@@ -183,7 +225,7 @@ export default function HomeScreen() {
           <View className="flex-row items-center justify-between">
             <View>
               <Text className="text-2xl font-bold text-gray-800">Avatar Creator</Text>
-              <Text className="text-gray-600 mt-1">Generate avatar images with AI</Text>
+              <Text className="text-gray-600 mt-1">Generate 6 avatar variations with AI</Text>
             </View>
             <View className="flex-row items-center">
               <View className={`w-3 h-3 rounded-full mr-2 ${
@@ -216,8 +258,9 @@ export default function HomeScreen() {
                     <View className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
                     <View className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
                   </View>
-                  <Text className="text-gray-500">Generating your avatar image...</Text>
+                  <Text className="text-gray-500">Generating 6 avatar variations...</Text>
                 </View>
+                <Text className="text-xs text-gray-400 mt-1">This may take 10-15 seconds</Text>
               </View>
             </View>
           )}
@@ -227,7 +270,7 @@ export default function HomeScreen() {
           <View className="flex-row items-end space-x-3">
             <TextInput
               className="flex-1 bg-gray-100 rounded-2xl px-4 py-3 text-base min-h-[44px] max-h-[120px]"
-              placeholder="Describe the avatar image you want to create..."
+              placeholder="Describe the avatar you want (6 variations will be generated)..."
               value={inputText}
               onChangeText={setInputText}
               multiline
