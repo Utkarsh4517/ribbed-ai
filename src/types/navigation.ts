@@ -8,9 +8,11 @@ export type RootStackParamList = {
     Auth: undefined;
   };
   
-  export type MainTabParamList = {
+  export type MainStackParamList = {
     Home: undefined;
-    Profile: undefined;
-    Settings: undefined;
+    InfluencerScreen: undefined;
+    SceneScreen: undefined;
+    ScriptScreen: undefined;
+    QueueScreen: undefined;
   };
   

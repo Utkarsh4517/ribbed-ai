@@ -1,65 +1,47 @@
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MainTabParamList } from '../types/navigation';
-import { Text, View } from 'react-native';
+import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from '../screens/HomeScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import SettingsScreen from '../screens/SettingsScreen';
+import ProfileScreen from '../screens/InfluencerScreen';
+import { MainStackParamList } from '../types/navigation';
+import SettingsScreen from '../screens/SceneScreen';
+import InfluencerScreen from '../screens/InfluencerScreen';
+import SceneScreen from '../screens/SceneScreen';
+import QueueScreen from '../screens/QueueScreen';
+import ScriptScreen from '../screens/ScriptScreen';
 
-const Tab = createBottomTabNavigator<MainTabParamList>();
+const Stack = createStackNavigator<MainStackParamList>();
 
-const TabIcon = ({ name, focused }: { name: string; focused: boolean }) => {
-  <View
-    className={`w-6 h-6 rounded-full ${focused ? 'bg-blue-500' : 'bg-gray-300'}`}
-  >
-    <Text
-      className={`text-center text-xs ${focused ? 'text-white' : 'text-gray-600'}`}
-    >
-      {name[0]}
-    </Text>
-  </View>;
-};
-
-export default function MainTabNavigator() {
+export default function MainStackNavigator() {
   return (
-    <Tab.Navigator
+    <Stack.Navigator
       screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#3B82F6',
-        tabBarInactiveTintColor: '#6B7280',
-        tabBarStyle: {
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 80,
-        },
+       headerShown: false,
       }}
     >
-      <Tab.Screen
+      <Stack.Screen
         name="Home"
         component={HomeScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="Home" focused={focused} />
-          ),
-        }}
+        
       />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="Profile" focused={focused} />
-          ),
-        }}
+      <Stack.Screen
+        name="InfluencerScreen"
+        component={InfluencerScreen}
+       
       />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="Settings" focused={focused} />
-          ),
-        }}
+      <Stack.Screen
+        name="SceneScreen"
+        component={SceneScreen}
+       
       />
-    </Tab.Navigator>
+      <Stack.Screen
+        name="ScriptScreen"
+        component={ScriptScreen}
+       
+      />
+      <Stack.Screen
+        name="QueueScreen"
+        component={QueueScreen}
+       
+      />
+    </Stack.Navigator>
   );
 }
