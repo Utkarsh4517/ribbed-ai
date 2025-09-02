@@ -7,7 +7,7 @@ export interface CreateAvatarRequest {
 export interface Avatar {
   name: string;
   appearance: string;
-  imageUrl?: string; 
+  imageUrl?: string;
 }
 
 export interface CreateAvatarResponse {
@@ -23,6 +23,13 @@ export interface HealthResponse {
   message: string;
   timestamp: string;
   sdk: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  user?: any;
+  session?: any;
 }
 
 export const apiService = {
@@ -59,6 +66,56 @@ export const apiService = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  async signUp(email: string, password: string): Promise<AuthResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  async signIn(email: string, password: string): Promise<AuthResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/signin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  async signOut(): Promise<AuthResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/signout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
 
     return response.json();
