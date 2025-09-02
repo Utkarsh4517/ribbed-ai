@@ -1,3 +1,5 @@
+import { Avatar } from "../services/api";
+
 export type RootStackParamList = {
     Onboarding: undefined;
     AuthNavigator: undefined;
@@ -10,7 +12,7 @@ export type RootStackParamList = {
   
   export type MainStackParamList = {
     Home: undefined;
-    InfluencerScreen: undefined;
+    InfluencerScreen: { avatar: Avatar };
     SceneScreen: undefined;
     ScriptScreen: undefined;
     QueueScreen: undefined;
