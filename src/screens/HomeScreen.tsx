@@ -16,9 +16,10 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { apiService, Avatar } from '../services/api';
+import { Avatar } from '../services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MainStackParamList } from '../types/navigation';
+import { useAppContext } from '../contexts/AppContext';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const maxImageWidth = (screenWidth * 0.85) / 2 - 10; 
@@ -27,42 +28,30 @@ type HomeScreenNavigationProp = StackNavigationProp<MainStackParamList, 'Home'>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const { generateAvatarsForPrompt, getAvatarsForPrompt } = useAppContext();
+  
   const [inputText, setInputText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<Avatar | null>(null);
   const [isFullScreenVisible, setIsFullScreenVisible] = useState(false);
-  const [avatars, setAvatars] = useState<Avatar[]>([]);
-  const [totalGenerated, setTotalGenerated] = useState<number | null>(null);
-  const [totalRequested, setTotalRequested] = useState<number | null>(null);
+  const [currentPrompt, setCurrentPrompt] = useState('');
+
+  const { avatars, isLoading } = getAvatarsForPrompt(currentPrompt);
 
   const sendPrompt = async () => {
     if (!inputText.trim() || isLoading) return;
 
-    setIsLoading(true);
-    setAvatars([]);
-    setTotalGenerated(null);
-    setTotalRequested(null);
+    const trimmedPrompt = inputText.trim();
+    setCurrentPrompt(trimmedPrompt);
+    setSelectedAvatar(null);
 
     try {
-      const data = await apiService.createAvatar(inputText.trim());
-
-      if (data.success && data.avatars) {
-        setAvatars(data.avatars || []);
-        console.log(data.avatars);
-        setTotalGenerated(data.totalGenerated ?? null);
-        setTotalRequested(data.totalRequested ?? null);
-      } else {
-        throw new Error('Failed to create avatar images');
-      }
+      await generateAvatarsForPrompt(trimmedPrompt);
     } catch (error) {
       console.error('Error:', error);
-      
       Alert.alert(
         'Connection Error',
         'Make sure the backend server is running and Replicate API token is configured'
       );
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -295,7 +284,6 @@ export default function HomeScreen() {
           
           {!isLoading && avatars.length > 0 && (
             <>
-             
               {renderAvatarGrid(avatars)}
             </>
           )}
