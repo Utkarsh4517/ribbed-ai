@@ -13,10 +13,27 @@ export interface Avatar {
   error?: string;
 }
 
+export interface Scene {
+  id: number;
+  name: string;
+  description: string;
+  imageUrl?: string;
+  originalAvatarUrl: string;
+  error?: string;
+}
+
 export interface CreateAvatarResponse {
   success: boolean;
   avatars: Avatar[];
   originalPrompt: string;
+  totalGenerated: number;
+  totalRequested: number;
+}
+
+export interface CreateScenesResponse {
+  success: boolean;
+  scenes: Scene[];
+  originalAvatarUrl: string;
   totalGenerated: number;
   totalRequested: number;
 }
@@ -53,6 +70,23 @@ export const apiService = {
     return response.json();
   },
 
+  async createScenes(avatarUrl: string): Promise<CreateScenesResponse> {
+    const response = await fetch(`${API_BASE_URL}/create-scenes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ avatarUrl }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
   async healthCheck(): Promise<HealthResponse> {
     const response = await fetch(`${API_BASE_URL}/health`);
     
@@ -65,6 +99,17 @@ export const apiService = {
 
   async testReplicate(): Promise<{ success: boolean; message: string; response: string; imageUrl?: string }> {
     const response = await fetch(`${API_BASE_URL}/test-replicate`);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  async testNanoBanana(): Promise<{ success: boolean; message: string; response: string; imageUrl?: string }> {
+    const response = await fetch(`${API_BASE_URL}/test-nano-banana`);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
