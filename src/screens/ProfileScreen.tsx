@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Text, 
   View, 
@@ -7,7 +7,10 @@ import {
   Image, 
   Alert, 
   RefreshControl,
-  Modal
+  Modal,
+  StatusBar,
+  Animated,
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -16,6 +19,8 @@ import { MainStackParamList } from '../types/navigation';
 import { apiService, VideoJob } from '../services/api';
 import { socketService, VideoStatusUpdate } from '../services/socketService';
 import { useAppContext } from '../contexts/AppContext';
+import WhiteButton from '../components/WhiteButton';
+import RedButton from '../components/RedButton';
 
 type ProfileScreenNavigationProp = StackNavigationProp<MainStackParamList, 'ProfileScreen'>;
 
@@ -39,6 +44,25 @@ export default function ProfileScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<VideoJob | null>(null);
   const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
 
   const loadUserJobs = async (showLoading = true) => {
     try {
@@ -151,130 +175,180 @@ export default function ProfileScreen() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 border-yellow-300 text-yellow-800';
-      case 'in-progress': return 'bg-blue-100 border-blue-300 text-blue-800';
-      case 'completed': return 'bg-green-100 border-green-300 text-green-800';
-      case 'failed': return 'bg-red-100 border-red-300 text-red-800';
-      case 'cancelled': return 'bg-gray-100 border-gray-300 text-gray-800';
-      default: return 'bg-gray-100 border-gray-300 text-gray-800';
-    }
+  const handleLogout = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: logout
+        }
+      ]
+    );
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'pending': return '⏳';
-      case 'in-progress': return '🔄';
-      case 'completed': return '✅';
-      case 'failed': return '❌';
-      case 'cancelled': return '⭕';
-      default: return '❓';
+      case 'pending':
+        return { text: 'Queued', color: 'text-white', bg: 'bg-white/20', dot: 'bg-white/60' };
+      case 'in-progress':
+        return { text: 'Generating', color: 'text-white', bg: 'bg-white/30', dot: 'bg-white' };
+      case 'completed':
+        return { text: 'Ready', color: 'text-white', bg: 'bg-white/30', dot: 'bg-white' };
+      case 'failed':
+        return { text: 'Failed', color: 'text-white/80', bg: 'bg-white/20', dot: 'bg-white/50' };
+      default:
+        return { text: 'Unknown', color: 'text-white/60', bg: 'bg-white/10', dot: 'bg-white/30' };
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return date.toLocaleDateString();
   };
 
-  const renderJobCard = (job: VideoJob) => (
-    <TouchableOpacity
-      key={job.id}
-      className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-100"
-      onPress={() => handleVideoPress(job)}
-      activeOpacity={0.7}
-    >
-      <View className="flex-row">
-        <View className="mr-4">
-          {job.sceneData.imageUrl ? (
-            <Image
-              source={{ uri: job.sceneData.imageUrl }}
-              style={{ width: 80, height: 80, borderRadius: 8 }}
-              resizeMode="cover"
-            />
-          ) : (
-            <View 
-              style={{ width: 80, height: 80 }}
-              className="bg-gray-200 rounded-lg items-center justify-center"
-            >
-              <Text className="text-gray-500 text-xs">No Image</Text>
-            </View>
-          )}
-        </View>
+  const getFilteredJobs = () => {
+    switch (activeTab) {
+      case 'completed':
+        return jobsByStatus.completed;
+      case 'pending':
+        return [...jobsByStatus.pending, ...jobsByStatus['in-progress']];
+      case 'failed':
+        return jobsByStatus.failed;
+      default:
+        return jobs;
+    }
+  };
 
-        <View className="flex-1">
-          <Text className="text-lg font-semibold text-gray-800 mb-1">
-            {job.sceneData.name}
-          </Text>
-          <Text className="text-sm text-gray-600 mb-2" numberOfLines={2}>
-            {job.sceneData.description}
-          </Text>
-          
-          {/* Status */}
-          <View className={`self-start px-2 py-1 rounded-full border ${getStatusColor(job.status)} mb-2`}>
-            <Text className="text-xs font-medium">
-              {getStatusIcon(job.status)} {job.status.toUpperCase()}
-            </Text>
-          </View>
-
-          <Text className="text-xs text-gray-500">
-            Created: {formatDate(job.createdAt)}
-          </Text>
-          {job.completedAt && (
-            <Text className="text-xs text-gray-500">
-              Completed: {formatDate(job.completedAt)}
-            </Text>
-          )}
-          {job.duration && (
-            <Text className="text-xs text-gray-500">
-              Duration: {job.duration.toFixed(1)}s
-            </Text>
-          )}
-        </View>
-
-        <View className="justify-center">
-          {job.status === 'pending' || job.status === 'in-progress' ? (
-            <TouchableOpacity
-              className="bg-red-500 rounded-lg px-3 py-2"
-              onPress={() => handleCancelJob(job.id)}
-            >
-              <Text className="text-white text-xs font-medium">Cancel</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              className="bg-gray-500 rounded-lg px-3 py-2"
-              onPress={() => handleDeleteJob(job.id)}
-            >
-              <Text className="text-white text-xs font-medium">Delete</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {job.error && (
-        <View className="mt-3 p-2 bg-red-50 rounded border border-red-200">
-          <Text className="text-red-700 text-sm">{job.error}</Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-
-  const renderStatusSection = (title: string, jobs: VideoJob[], color: string) => {
-    if (jobs.length === 0) return null;
-
+  const renderJobCard = (job: VideoJob) => {
+    const statusInfo = getStatusInfo(job.status);
+    
     return (
-      <View className="mb-6">
-        <View className="flex-row items-center mb-3">
-          <Text className="text-lg font-bold text-gray-800">{title}</Text>
-          <View className={`ml-2 px-2 py-1 rounded-full ${color}`}>
-            <Text className="text-xs font-medium text-white">{jobs.length}</Text>
+      <TouchableOpacity
+        key={job.id}
+        className="bg-white/10 rounded-2xl p-4 mb-4 border border-white/20"
+        onPress={() => handleVideoPress(job)}
+        activeOpacity={0.8}
+      >
+        <View className="flex-row">
+          <View className="mr-4">
+            {job.sceneData.imageUrl ? (
+              <Image
+                source={{ uri: job.sceneData.imageUrl }}
+                style={{ width: 80, height: 80, borderRadius: 12 }}
+                resizeMode="cover"
+              />
+            ) : (
+              <View 
+                style={{ width: 80, height: 80 }}
+                className="bg-white/10 rounded-xl items-center justify-center border border-white/20"
+              >
+                <Text className="text-white/60 text-xs font-sfpro-regular">No Image</Text>
+              </View>
+            )}
+          </View>
+
+          <View className="flex-1">
+            <Text className="text-white text-lg font-sfpro-semibold mb-1">
+              {job.sceneData.name}
+            </Text>
+            <Text className="text-white/70 text-sm font-sfpro-regular mb-2" numberOfLines={2}>
+              {job.sceneData.description}
+            </Text>
+            
+            <View className="flex-row items-center mb-2">
+              <View className={`w-2 h-2 rounded-full mr-2 ${statusInfo.dot}`} />
+              <Text className={`text-sm font-sfpro-medium ${statusInfo.color}`}>
+                {statusInfo.text}
+              </Text>
+            </View>
+
+            <Text className="text-white/60 text-xs font-sfpro-regular">
+              {formatDate(job.createdAt)}
+            </Text>
+            {job.duration && (
+              <Text className="text-white/60 text-xs font-sfpro-regular">
+                Duration: {job.duration.toFixed(1)}s
+              </Text>
+            )}
+          </View>
+
+          <View className="justify-center">
+            {job.status === 'pending' || job.status === 'in-progress' ? (
+              <TouchableOpacity
+                className="bg-white/20 border border-white/30 rounded-full px-3 py-2"
+                onPress={() => handleCancelJob(job.id)}
+              >
+                <Text className="text-white text-xs font-sfpro-medium">Cancel</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                className="bg-white/20 border border-white/30 rounded-full px-3 py-2"
+                onPress={() => handleDeleteJob(job.id)}
+              >
+                <Text className="text-white text-xs font-sfpro-medium">Delete</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
-        {jobs.map(renderJobCard)}
-      </View>
+
+        {job.error && (
+          <View className="mt-3 p-3 bg-white/10 rounded-xl border border-white/20">
+            <Text className="text-white/80 text-sm font-sfpro-regular">{job.error}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
     );
   };
+
+  const renderStatsGrid = () => (
+    <View className="flex-row flex-wrap justify-between mb-6">
+      <View className="bg-white/10 rounded-2xl p-4 border border-white/20" style={{ width: '48%' }}>
+        <Text className="text-white/80 text-sm font-sfpro-regular">Total Videos</Text>
+        <Text className="text-white text-2xl font-sfpro-semibold">{jobs.length}</Text>
+      </View>
+      <View className="bg-white/10 rounded-2xl p-4 border border-white/20" style={{ width: '48%' }}>
+        <Text className="text-white/80 text-sm font-sfpro-regular">Completed</Text>
+        <Text className="text-white text-2xl font-sfpro-semibold">{jobsByStatus.completed.length}</Text>
+      </View>
+    </View>
+  );
+
+  const renderTabBar = () => (
+    <View className="bg-white/10 rounded-2xl p-2 border border-white/20 mb-6">
+      <View className="flex-row">
+        {[
+          { key: 'all', label: 'All' },
+          { key: 'completed', label: 'Ready' },
+          { key: 'pending', label: 'Processing' },
+          { key: 'failed', label: 'Failed' }
+        ].map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            onPress={() => setActiveTab(tab.key as any)}
+            className={`flex-1 py-2 px-3 rounded-xl items-center ${
+              activeTab === tab.key ? 'bg-white' : 'bg-transparent'
+            }`}
+          >
+            <Text className={`text-sm font-sfpro-medium ${
+              activeTab === tab.key ? 'text-[#FF5555]' : 'text-white/70'
+            }`}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
 
   const renderVideoModal = () => (
     <Modal
@@ -283,38 +357,36 @@ export default function ProfileScreen() {
       animationType="fade"
       onRequestClose={() => setIsVideoModalVisible(false)}
     >
-      <View className="flex-1 bg-black bg-opacity-90 items-center justify-center">
-        <View className="bg-white rounded-lg p-4 m-4 max-w-sm w-full">
-          <Text className="text-lg font-bold text-gray-800 mb-4">
+      <View className="flex-1 bg-black/80 items-center justify-center px-8">
+        <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
+          <Text className="text-gray-800 text-lg font-sfpro-semibold mb-4 text-center">
             {selectedVideo?.sceneData.name}
           </Text>
           
           {selectedVideo?.videoUrl ? (
             <View className="mb-4">
-              <TouchableOpacity
-                className="bg-blue-500 rounded-lg p-4 items-center mb-3"
+              <RedButton
+                title="Open Video"
                 onPress={() => {
                   Alert.alert('Video URL', selectedVideo.videoUrl!);
                 }}
-              >
-                <Text className="text-white font-semibold">📹 Open Video</Text>
-              </TouchableOpacity>
+              />
               
-              <Text className="text-sm text-gray-600 text-center">
+              <Text className="text-gray-600 text-sm text-center mt-3 font-sfpro-regular">
                 Duration: {selectedVideo.duration?.toFixed(1)}s
               </Text>
             </View>
           ) : (
-            <Text className="text-gray-600 text-center mb-4">
+            <Text className="text-gray-600 text-center mb-4 font-sfpro-regular">
               Video is still processing...
             </Text>
           )}
 
           <TouchableOpacity
-            className="bg-gray-500 rounded-lg p-3 items-center"
+            className="bg-gray-200 rounded-2xl p-3 items-center"
             onPress={() => setIsVideoModalVisible(false)}
           >
-            <Text className="text-white font-medium">Close</Text>
+            <Text className="text-gray-800 font-sfpro-medium">Close</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -323,93 +395,92 @@ export default function ProfileScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-600">Loading your videos...</Text>
-        </View>
-      </SafeAreaView>
+      <>
+        <StatusBar barStyle="light-content" backgroundColor="#FF5555" />
+        <SafeAreaView className="flex-1 bg-[#FF5555]">
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color="white" />
+            <Text className="text-white font-sfpro-regular mt-4">Loading your videos...</Text>
+          </View>
+        </SafeAreaView>
+      </>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView 
-        className="flex-1 px-4 py-4"
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
-        }
-      >
-        {/* Header */}
-        <View className="flex-row items-center justify-between mb-6">
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            className="bg-white rounded-full p-2 shadow-sm"
-          >
-            <Text className="text-lg">←</Text>
-          </TouchableOpacity>
-          <Text className="text-xl font-bold text-gray-800">My Videos</Text>
-          <TouchableOpacity
-            className="bg-red-500 rounded-full p-2 shadow-sm"
-          >
-            <Text className="text-white text-sm">🚪</Text>
-          </TouchableOpacity>
-        </View>
-
-        {user && (
-          <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-100">
-            <Text className="text-lg font-semibold text-gray-800 mb-1">
-              Welcome back!
-            </Text>
-            <Text className="text-sm text-gray-600">{user.email}</Text>
-            <Text className="text-sm text-gray-500 mt-2">
-              Total videos: {jobs.length}
-            </Text>
-          </View>
-        )}
-
-        <View className="flex-row flex-wrap justify-between mb-6">
-          <View className="bg-yellow-500 rounded-lg p-3 mb-2" style={{ width: '48%' }}>
-            <Text className="text-white text-sm">Pending</Text>
-            <Text className="text-white text-2xl font-bold">{jobsByStatus.pending.length}</Text>
-          </View>
-          <View className="bg-blue-500 rounded-lg p-3 mb-2" style={{ width: '48%' }}>
-            <Text className="text-white text-sm">In Progress</Text>
-            <Text className="text-white text-2xl font-bold">{jobsByStatus['in-progress'].length}</Text>
-          </View>
-          <View className="bg-green-500 rounded-lg p-3" style={{ width: '48%' }}>
-            <Text className="text-white text-sm">Completed</Text>
-            <Text className="text-white text-2xl font-bold">{jobsByStatus.completed.length}</Text>
-          </View>
-          <View className="bg-red-500 rounded-lg p-3" style={{ width: '48%' }}>
-            <Text className="text-white text-sm">Failed</Text>
-            <Text className="text-white text-2xl font-bold">{jobsByStatus.failed.length}</Text>
-          </View>
-        </View>
-
-        {jobs.length === 0 ? (
-          <View className="bg-white rounded-lg p-8 items-center">
-            <Text className="text-gray-600 text-lg mb-2">No videos yet</Text>
-            <Text className="text-gray-500 text-center">
-              Create your first video by going to the home screen and generating an avatar!
-            </Text>
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#FF5555" />
+      <SafeAreaView className="flex-1 bg-[#FF5555]">
+        <Animated.View 
+          className="flex-1"
+          style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }}
+        >
+          {/* Header */}
+          <View className="flex-row items-center justify-between px-8 py-6">
             <TouchableOpacity
-              className="bg-blue-500 rounded-lg px-6 py-3 mt-4"
-              onPress={() => navigation.navigate('Home')}
+              onPress={() => navigation.goBack()}
+              className="bg-white/20 rounded-full p-3 border border-white/30"
             >
-              <Text className="text-white font-semibold">Get Started</Text>
+              <Text className="text-white text-lg">←</Text>
+            </TouchableOpacity>
+            
+            <View className="items-center">
+              <Text className="text-white text-2xl font-sfpro-semibold">My Videos</Text>
+              <Text className="text-white/80 text-sm font-sfpro-regular mt-1">
+                {user?.email}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleLogout}
+              className="bg-white/20 rounded-full p-3 border border-white/30"
+            >
+              <Text className="text-white text-lg">⏻</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <>
-            {renderStatusSection('In Progress', jobsByStatus['in-progress'], 'bg-blue-500')}
-            {renderStatusSection('Pending', jobsByStatus.pending, 'bg-yellow-500')}
-            {renderStatusSection('Completed', jobsByStatus.completed, 'bg-green-500')}
-            {renderStatusSection('Failed', jobsByStatus.failed, 'bg-red-500')}
-          </>
-        )}
-      </ScrollView>
 
-      {renderVideoModal()}
-    </SafeAreaView>
+          <ScrollView 
+            className="flex-1 px-8"
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl 
+                refreshing={isRefreshing} 
+                onRefresh={handleRefresh}
+                tintColor="white"
+              />
+            }
+          >
+            {/* Stats */}
+            {renderStatsGrid()}
+
+            {/* Tab Bar */}
+            {jobs.length > 0 && renderTabBar()}
+
+            {/* Videos List */}
+            {jobs.length === 0 ? (
+              <View className="bg-white/10 rounded-2xl p-8 items-center border border-white/20">
+                <Text className="text-white text-lg font-sfpro-semibold mb-2">No videos yet</Text>
+                <Text className="text-white/80 text-center font-sfpro-regular mb-6 leading-relaxed">
+                  Create your first video by generating an avatar and scene!
+                </Text>
+                <WhiteButton
+                  title="Get Started"
+                  onPress={() => navigation.navigate('Home')}
+                />
+              </View>
+            ) : (
+              <View className="pb-4">
+                {getFilteredJobs().map(renderJobCard)}
+              </View>
+            )}
+          </ScrollView>
+        </Animated.View>
+
+        {renderVideoModal()}
+      </SafeAreaView>
+    </>
   );
 }
