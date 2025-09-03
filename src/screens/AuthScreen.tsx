@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppContext } from '../contexts/AppContext';
+import WhiteButton from '../components/WhiteButton';
+import RedButton from '../components/RedButton';
 
 export default function AuthScreen() {
   const { signIn, signUp } = useAppContext();
@@ -18,6 +21,22 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
 
   const handleAuth = async () => {
     if (!email.trim() || !password.trim()) {
@@ -50,84 +69,117 @@ export default function AuthScreen() {
     }
   };
 
+  const toggleAuthMode = () => {
+    setIsSignUp(!isSignUp);
+    setEmail('');
+    setPassword('');
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
-      >
-        <ScrollView className="flex-1 px-6 py-8" showsVerticalScrollIndicator={false}>
-          <View className="items-center mb-12">
-            <Text className="text-3xl font-bold text-gray-800 mb-2">
-              {isSignUp ? 'Create Account' : 'Welcome Back'}
-            </Text>
-            <Text className="text-gray-600 text-center">
-              {isSignUp
-                ? 'Sign up to start creating amazing AI videos'
-                : 'Sign in to continue creating AI videos'
-              }
-            </Text>
-          </View>
-
-          <View className="space-y-4">
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-2">Email</Text>
-              <TextInput
-                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
-                placeholder="Enter your email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isLoading}
-              />
-            </View>
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-2">Password</Text>
-              <TextInput
-                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
-                placeholder="Enter your password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isLoading}
-              />
-            </View>
-
-            <TouchableOpacity
-              className={`rounded-lg py-4 items-center mt-6 ${
-                isLoading ? 'bg-gray-400' : 'bg-blue-500'
-              }`}
-              onPress={handleAuth}
-              disabled={isLoading}
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#FF5555" />
+      <SafeAreaView className="flex-1 bg-[#FF5555]">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1"
+        >
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            <Animated.View 
+              className="flex-1 px-8 py-12"
+              style={{
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }}
             >
-              <Text className="text-white text-lg font-semibold">
-                {isLoading
-                  ? (isSignUp ? 'Creating Account...' : 'Signing In...')
-                  : (isSignUp ? 'Create Account' : 'Sign In')
-                }
-              </Text>
-            </TouchableOpacity>
+              <View className="items-center mb-12 mt-8">
+                <Text className="text-white text-4xl font-sfpro-semibold text-center mb-4 leading-tight">
+                  {isSignUp ? 'Join Ribbed AI' : 'Welcome Back'}
+                </Text>
+                <Text className="text-white/90 text-lg text-center leading-relaxed px-4 font-sfpro-regular">
+                  {isSignUp
+                    ? 'Create your account to start building amazing AI videos'
+                    : 'Sign in to continue your AI video journey'
+                  }
+                </Text>
+              </View>
 
-            <TouchableOpacity
-              className="py-4 items-center"
-              onPress={() => setIsSignUp(!isSignUp)}
-              disabled={isLoading}
-            >
-              <Text className="text-blue-500 font-medium">
-                {isSignUp
-                  ? 'Already have an account? Sign In'
-                  : "Don't have an account? Sign Up"
-                }
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+              <View className="space-y-6 mb-8">
+                <View>
+                  <Text className="text-white font-sfpro-medium text-base mb-3 ml-2">
+                    Email Address
+                  </Text>
+                  <TextInput
+                    className="bg-white/10 border border-white/20 rounded-2xl px-6 text-white text-base font-sfpro-regular"
+                    style={{ 
+                      height: 56,
+                      textAlignVertical: 'center', 
+                      includeFontPadding: false,
+                      lineHeight: 20
+                    }}
+                    placeholder="Enter your email"
+                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!isLoading}
+                  />
+                </View>
+
+                <View>
+                  <Text className="text-white font-sfpro-medium text-base mb-3 ml-2">
+                    Password
+                  </Text>
+                  <TextInput
+                    className="bg-white/10 border border-white/20 rounded-2xl px-6 text-white text-base font-sfpro-regular"
+                    style={{ 
+                      height: 56,
+                      textAlignVertical: 'center', 
+                      includeFontPadding: false,
+                      lineHeight: 20
+                    }}
+                    placeholder="Enter your password"
+                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!isLoading}
+                  />
+                </View>
+              </View>
+
+              <View className="mb-6">
+                <WhiteButton
+                  title={
+                    isLoading
+                      ? (isSignUp ? 'Creating Account...' : 'Signing In...')
+                      : (isSignUp ? 'Create Account' : 'Sign In')
+                  }
+                  onPress={handleAuth}
+                  disabled={isLoading}
+                />
+              </View>
+
+              <View className="items-center">
+                <Text className="text-white/70 font-sfpro-regular text-base mb-4">
+                  {isSignUp
+                    ? 'Already have an account?'
+                    : "Don't have an account?"
+                  }
+                </Text>
+                <RedButton
+                  title={isSignUp ? 'Sign In' : 'Sign Up'}
+                  onPress={toggleAuthMode}
+                  disabled={isLoading}
+                />
+              </View>
+            </Animated.View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </>
   );
 }
