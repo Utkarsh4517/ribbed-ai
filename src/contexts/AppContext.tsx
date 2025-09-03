@@ -120,6 +120,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             hasGenerated: true
           }
         }));
+        console.log('Scenes generated:', data.scenes);
       } else {
         throw new Error('Failed to generate scenes');
       }

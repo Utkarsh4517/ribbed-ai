@@ -52,6 +52,22 @@ export interface AuthResponse {
   session?: any;
 }
 
+export interface TTSOptions {
+  voice?: string;
+  stability?: number;
+  similarity_boost?: number;
+  speed?: number;
+  timestamps?: boolean;
+}
+
+export interface TTSResponse {
+  success: boolean;
+  audioUrl?: string;
+  timestamps?: any[];
+  requestId?: string;
+  error?: string;
+}
+
 export const apiService = {
   async createAvatar(prompt: string): Promise<CreateAvatarResponse> {
     const response = await fetch(`${API_BASE_URL}/create-avatar`, {
@@ -82,6 +98,26 @@ export const apiService = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  async generateSpeech(text: string, options?: TTSOptions): Promise<TTSResponse> {
+    const response = await fetch(`${API_BASE_URL}/tts/generate-speech`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        text, 
+        ...options 
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
 
     return response.json();
