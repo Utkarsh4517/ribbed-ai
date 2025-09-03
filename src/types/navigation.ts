@@ -15,6 +15,6 @@ export type RootStackParamList = {
     InfluencerScreen: { avatar: Avatar };
     SceneScreen: undefined;
     ScriptScreen: { scene: Scene };
-    QueueScreen: undefined;
+    QueueScreen: { scene: Scene; audioUrl: string };
   };
   

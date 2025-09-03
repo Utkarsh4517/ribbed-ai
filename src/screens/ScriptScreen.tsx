@@ -59,10 +59,18 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
     }
   };
 
+  const handleCreateVideo = () => {
+    if (audioUrl) {
+      navigation.navigate('QueueScreen', { 
+        scene: scene,
+        audioUrl: audioUrl 
+      });
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView className="flex-1 px-4 py-4">
-        {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -193,10 +201,17 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
             <View className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
               <Text className="text-green-800 font-semibold mb-2">✅ Speech Generated Successfully!</Text>
               <TouchableOpacity
-                className="bg-green-500 rounded-lg p-3 items-center"
+                className="bg-green-500 rounded-lg p-3 items-center mb-3"
                 onPress={() => Alert.alert('Audio URL', audioUrl)}
               >
                 <Text className="text-white font-semibold">View Audio URL</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                className="bg-purple-500 rounded-lg p-4 items-center"
+                onPress={handleCreateVideo}
+              >
+                <Text className="text-white font-bold text-lg">🎬 Create Video</Text>
               </TouchableOpacity>
             </View>
           )}
