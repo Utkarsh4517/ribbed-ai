@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Text, 
   View, 
@@ -12,7 +12,8 @@ import {
   Dimensions,
   Modal,
   TouchableWithoutFeedback,
-  StatusBar
+  StatusBar,
+  Animated
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -20,6 +21,7 @@ import { Avatar } from '../services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MainStackParamList } from '../types/navigation';
 import { useAppContext } from '../contexts/AppContext';
+import WhiteButton from '../components/WhiteButton';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const maxImageWidth = (screenWidth * 0.85) / 2 - 10; 
@@ -34,8 +36,24 @@ export default function HomeScreen() {
   const [selectedAvatar, setSelectedAvatar] = useState<Avatar | null>(null);
   const [isFullScreenVisible, setIsFullScreenVisible] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('');
-
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
   const { avatars, isLoading } = getAvatarsForPrompt(currentPrompt);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
 
   const sendPrompt = async () => {
     if (!inputText.trim() || isLoading) return;
@@ -78,44 +96,37 @@ export default function HomeScreen() {
 
   const renderAvatarGrid = (items: Avatar[]) => {
     return (
-      <View className="mt-3">
+      <View className="mt-6">
         <View className="flex-row flex-wrap justify-between">
           {items.map((avatar) => {
             const isSelected = selectedAvatar?.id === avatar.id;
             return (
               <TouchableOpacity 
                 key={avatar.id} 
-                className="mb-3" 
+                className="mb-4" 
                 style={{ width: maxImageWidth }}
                 onPress={() => handleAvatarSelect(avatar)}
                 activeOpacity={0.8}
               >
                 {avatar.imageUrl ? (
                   <View>
-                    <View
+                    <Image
+                      source={{ uri: avatar.imageUrl }}
                       style={{
+                        width: maxImageWidth,
+                        height: maxImageWidth,
+                        borderRadius: 12,
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
                         borderWidth: isSelected ? 3 : 0,
-                        borderColor: isSelected ? '#3B82F6' : 'transparent',
-                        borderRadius: 8,
-                        padding: isSelected ? 2 : 0,
+                        borderColor: isSelected ? '#FFFFFF' : 'transparent'
                       }}
-                    >
-                      <Image
-                        source={{ uri: avatar.imageUrl }}
-                        style={{
-                          width: maxImageWidth - (isSelected ? 4 : 0),
-                          height: maxImageWidth - (isSelected ? 4 : 0),
-                          borderRadius: 6,
-                          backgroundColor: '#f3f4f6'
-                        }}
-                        resizeMode="cover"
-                        onError={(error) => {
-                          console.error(`Avatar ${avatar.id} failed to load:`, error.nativeEvent.error);
-                        }}
-                      />
-                    </View>
-                    <Text className={`text-xs mt-1 text-center ${
-                      isSelected ? 'text-blue-600 font-semibold' : 'text-gray-600'
+                      resizeMode="cover"
+                      onError={(error) => {
+                        console.error(`Avatar ${avatar.id} failed to load:`, error.nativeEvent.error);
+                      }}
+                    />
+                    <Text className={`text-xs mt-2 text-center font-sfpro-medium ${
+                      isSelected ? 'text-white' : 'text-white/70'
                     }`}>
                       Variation {avatar.variation}
                       {isSelected && ' ✓'}
@@ -126,18 +137,18 @@ export default function HomeScreen() {
                     style={{
                       width: maxImageWidth,
                       height: maxImageWidth,
-                      borderRadius: 8,
-                      backgroundColor: '#f3f4f6',
-                      borderWidth: isSelected ? 3 : 1,
-                      borderColor: isSelected ? '#3B82F6' : '#e5e7eb'
+                      borderRadius: 12,
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      borderWidth: isSelected ? 3 : 0,
+                      borderColor: isSelected ? '#FFFFFF' : 'transparent'
                     }}
                     className="items-center justify-center"
                   >
-                    <Text className="text-xs text-gray-500 text-center px-2">
+                    <Text className="text-xs text-white/60 text-center px-2 font-sfpro-regular">
                       Failed to generate
                     </Text>
-                    <Text className={`text-xs mt-1 ${
-                      isSelected ? 'text-blue-600 font-semibold' : 'text-gray-600'
+                    <Text className={`text-xs mt-2 font-sfpro-medium ${
+                      isSelected ? 'text-white' : 'text-white/70'
                     }`}>
                       Variation {avatar.variation}
                       {isSelected && ' ✓'}
@@ -155,24 +166,26 @@ export default function HomeScreen() {
   const renderSkeletonGrid = () => {
     const placeholders = Array.from({ length: 6 }, (_, i) => i);
     return (
-      <View className="mt-3">
+      <View className="mt-6">
         <View className="flex-row flex-wrap justify-between">
           {placeholders.map((i) => (
-            <View key={`skeleton-${i}`} className="mb-3" style={{ width: maxImageWidth }}>
+            <View key={`skeleton-${i}`} className="mb-4" style={{ width: maxImageWidth }}>
               <View
                 style={{
                   width: maxImageWidth,
                   height: maxImageWidth,
-                  borderRadius: 8,
-                  backgroundColor: '#e5e7eb'
+                  borderRadius: 12,
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)'
                 }}
                 className="animate-pulse"
               />
-              <View className="h-3 bg-gray-200 rounded mt-2 mx-auto w-20 animate-pulse" />
+              <View className="h-3 bg-white/20 rounded mt-2 mx-auto w-20 animate-pulse" />
             </View>
           ))}
         </View>
-        <Text className="text-xs text-gray-400 mt-1">This may take 10-15 seconds</Text>
+        <Text className="text-xs text-white/60 mt-2 text-center font-sfpro-regular">
+          This may take 10-15 seconds
+        </Text>
       </View>
     );
   };
@@ -201,10 +214,10 @@ export default function HomeScreen() {
                   }}
                   resizeMode="contain"
                 />
-                <Text className="text-white text-lg mt-4 font-medium">
+                <Text className="text-white text-lg mt-4 font-sfpro-semibold">
                   Variation {selectedAvatar.variation}
                 </Text>
-                <Text className="text-gray-300 text-sm mt-2 text-center px-4">
+                <Text className="text-white/70 text-sm mt-2 text-center px-4 font-sfpro-regular">
                   Tap anywhere to close
                 </Text>
               </View>
@@ -218,52 +231,47 @@ export default function HomeScreen() {
   const renderBottomSection = () => {
     if (selectedAvatar) {
       return (
-        <View className="bg-white border-t border-gray-200 px-4 py-4">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-sm text-gray-600">
-              Selected: Variation {selectedAvatar.variation}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setSelectedAvatar(null)}
-              className="px-3 py-1 bg-gray-200 rounded-full"
-            >
-              <Text className="text-gray-600 text-sm">Change</Text>
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity
-            className="w-full bg-blue-500 rounded-2xl py-4 items-center"
+        <View className="bg-[#FF5555] px-8 pb-8 pt-6">
+          <WhiteButton
+            title="Continue"
             onPress={handleNextButton}
-            activeOpacity={0.8}
-          >
-            <Text className="text-white text-lg font-semibold">Next</Text>
-          </TouchableOpacity>
+          />
         </View>
       );
     }
 
     return (
-      <View className="bg-white border-t border-gray-200 px-4 py-4">
+      <View className="bg-[#FF5555] px-8 pb-8 pt-6">
         <View className="flex-row items-center gap-x-3">
           <TextInput
-            className="flex-1 bg-gray-100 rounded-2xl px-4 py-3 text-base min-h-[44px] max-h-[120px]"
-            placeholder="Describe the avatar you want.."
+            className="flex-1 bg-white/10 border border-white/20 rounded-2xl px-6 text-white text-base font-sfpro-regular"
+            style={{ 
+              height: 56,
+              textAlignVertical: 'center', 
+              includeFontPadding: false,
+              lineHeight: 20
+            }}
+            placeholder="Describe the avatar you want..."
+            placeholderTextColor="rgba(255, 255, 255, 0.6)"
             value={inputText}
             onChangeText={setInputText}
-            multiline
             maxLength={500}
             editable={!isLoading}
-            textAlignVertical="top"
           />
           <TouchableOpacity
-            className={`w-12 h-12 rounded-full items-center justify-center ${
+            className={`w-14 h-14 rounded-full items-center justify-center border-2 ${
               inputText.trim() && !isLoading
-                ? 'bg-blue-500'
-                : 'bg-gray-300'
+                ? 'bg-white border-white'
+                : 'bg-white/20 border-white/30'
             }`}
             onPress={sendPrompt}
             disabled={!inputText.trim() || isLoading}
           >
-            <Text className="text-white text-xl font-semibold">→</Text>
+            <Text className={`text-xl font-sfpro-semibold ${
+              inputText.trim() && !isLoading ? 'text-[#FF5555]' : 'text-white/60'
+            }`}>
+              →
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -271,38 +279,62 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <KeyboardAvoidingView 
-        className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View className="flex-row items-center justify-between px-4 py-4">
-          <Text className="text-2xl font-bold text-gray-800">Create Avatar</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('ProfileScreen')}
-            className="bg-blue-500 rounded-full p-3 shadow-sm"
-          >
-            <Text className="text-white text-lg">👤</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView 
-          className="flex-1 px-4"
-          showsVerticalScrollIndicator={false}
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#FF5555" />
+      <SafeAreaView className="flex-1 bg-[#FF5555]">
+        <KeyboardAvoidingView 
+          className="flex-1"
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          {isLoading && renderSkeletonGrid()}
-          
-          {!isLoading && avatars.length > 0 && (
-            <>
-              {renderAvatarGrid(avatars)}
-            </>
-          )}
-        </ScrollView>
+          <Animated.View 
+            className="flex-1"
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }}
+          >
+            <View className="flex-row items-center justify-between px-8 py-6">
+              <View>
+                <Text className="text-white text-3xl font-sfpro-semibold">Create Avatar</Text>
+                <Text className="text-white/80 text-base font-sfpro-regular mt-1">
+                  Design your perfect AI persona
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('ProfileScreen')}
+                className="bg-white/20 rounded-full p-3 border border-white/30"
+              >
+                <Text className="text-white text-lg">👤</Text>
+              </TouchableOpacity>
+            </View>
 
-        {renderBottomSection()}
-      </KeyboardAvoidingView>
-      
-      {renderFullScreenModal()}
-    </SafeAreaView>
+            <ScrollView 
+              className="flex-1 px-8"
+              showsVerticalScrollIndicator={false}
+            >
+              {!currentPrompt && !isLoading && (
+                <View className="items-center py-12">
+                  <Text className="text-white/70 text-lg text-center font-sfpro-regular leading-relaxed">
+                    Describe your ideal avatar and we'll generate multiple variations for you to choose from
+                  </Text>
+                </View>
+              )}
+
+              {isLoading && renderSkeletonGrid()}
+              
+              {!isLoading && avatars.length > 0 && (
+                <>
+                  {renderAvatarGrid(avatars)}
+                </>
+              )}
+            </ScrollView>
+          </Animated.View>
+
+          {renderBottomSection()}
+        </KeyboardAvoidingView>
+        
+        {renderFullScreenModal()}
+      </SafeAreaView>
+    </>
   );
 }
