@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const API_BASE_URL = 'http://localhost:3000/api';
 
 export interface CreateAvatarRequest {
@@ -68,6 +70,66 @@ export interface TTSResponse {
   error?: string;
 }
 
+export interface VideoJob {
+  id: string;
+  userId: string;
+  sceneData: Scene;
+  audioUrl: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'failed' | 'cancelled';
+  videoUrl?: string;
+  duration?: number;
+  error?: string;
+  createdAt: string;
+  completedAt?: string;
+  updatedAt: string;
+}
+
+export interface VideoGenerationResponse {
+  success: boolean;
+  jobId?: string;
+  status?: string;
+  message?: string;
+  estimatedTime?: string;
+  error?: string;
+}
+
+export interface UserJobsResponse {
+  success: boolean;
+  jobs: VideoJob[];
+  jobsByStatus: {
+    pending: VideoJob[];
+    'in-progress': VideoJob[];
+    completed: VideoJob[];
+    failed: VideoJob[];
+  };
+  total: number;
+  user: {
+    id: string;
+    email: string;
+  };
+  error?: string;
+}
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  try {
+    const session = await AsyncStorage.getItem('supabase.auth.token');
+    if (session) {
+      const sessionData = JSON.parse(session);
+      if (sessionData.access_token) {
+        headers['Authorization'] = `Bearer ${sessionData.access_token}`;
+      }
+    }
+  } catch (error) {
+    console.error('Error getting auth headers:', error);
+  }
+
+  return headers;
+}
+
 export const apiService = {
   async createAvatar(prompt: string): Promise<CreateAvatarResponse> {
     const response = await fetch(`${API_BASE_URL}/create-avatar`, {
@@ -113,6 +175,90 @@ export const apiService = {
         text, 
         ...options 
       }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  async generateVideo(sceneData: Scene, audioUrl: string): Promise<VideoGenerationResponse> {
+    const headers = await getAuthHeaders();
+    
+    const response = await fetch(`${API_BASE_URL}/video/generate`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ 
+        sceneData,
+        audioUrl 
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  async getVideoJobStatus(jobId: string): Promise<{ success: boolean; job?: VideoJob; error?: string }> {
+    const headers = await getAuthHeaders();
+    
+    const response = await fetch(`${API_BASE_URL}/video/job/${jobId}`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  async getUserVideoJobs(): Promise<UserJobsResponse> {
+    const headers = await getAuthHeaders();
+    
+    const response = await fetch(`${API_BASE_URL}/video/user-jobs`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  async cancelVideoJob(jobId: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    const headers = await getAuthHeaders();
+    
+    const response = await fetch(`${API_BASE_URL}/video/job/${jobId}/cancel`, {
+      method: 'POST',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  async deleteVideoJob(jobId: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    const headers = await getAuthHeaders();
+    
+    const response = await fetch(`${API_BASE_URL}/video/job/${jobId}`, {
+      method: 'DELETE',
+      headers,
     });
 
     if (!response.ok) {

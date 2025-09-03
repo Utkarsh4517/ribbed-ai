@@ -16,5 +16,6 @@ export type RootStackParamList = {
     SceneScreen: undefined;
     ScriptScreen: { scene: Scene };
     QueueScreen: { scene: Scene; audioUrl: string };
+    ProfileScreen: undefined;
   };
   
