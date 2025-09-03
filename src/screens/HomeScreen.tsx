@@ -276,8 +276,18 @@ export default function HomeScreen() {
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <View className="flex-row items-center justify-between px-4 py-4">
+          <Text className="text-2xl font-bold text-gray-800">Create Avatar</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ProfileScreen')}
+            className="bg-blue-500 rounded-full p-3 shadow-sm"
+          >
+            <Text className="text-white text-lg">👤</Text>
+          </TouchableOpacity>
+        </View>
+
         <ScrollView 
-          className="flex-1 px-4 py-4"
+          className="flex-1 px-4"
           showsVerticalScrollIndicator={false}
         >
           {isLoading && renderSkeletonGrid()}

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { StorageService } from '../utils/storage';
 import { Scene, Avatar, apiService } from '../services/api';
+import { socketService } from '../services/socketService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ScenesState {
   [avatarUrl: string]: {
@@ -21,14 +23,22 @@ interface AvatarsState {
   };
 }
 
+interface User {
+  id: string;
+  email: string;
+  accessToken: string;
+}
+
 interface AppContextType {
   isLoading: boolean;
   hasCompletedOnboarding: boolean;
   isAuthenticated: boolean;
+  user: User | null;
   scenesState: ScenesState;
   avatarsState: AvatarsState;
   completeOnboarding: () => Promise<void>;
-  authenticate: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   generateScenesForAvatar: (avatarUrl: string) => Promise<void>;
   getScenesForAvatar: (avatarUrl: string) => { scenes: Scene[]; totalGenerated: number; isLoading: boolean; hasGenerated: boolean };
@@ -54,18 +64,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [scenesState, setScenesState] = useState<ScenesState>({});
   const [avatarsState, setAvatarsState] = useState<AvatarsState>({});
 
   const checkAppState = async () => {
     try {
-      const [onboardingComplete, authenticated] = await Promise.all([
+      const [onboardingComplete, storedUser] = await Promise.all([
         StorageService.hasCompletedOnboarding(),
-        StorageService.isAuthenticated(),
+        AsyncStorage.getItem('user')
       ]);
 
       setHasCompletedOnboarding(onboardingComplete);
-      setIsAuthenticated(authenticated);
+      
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        setIsAuthenticated(true);
+        
+        socketService.connect();
+      }
     } catch (error) {
       console.error('Error checking app state:', error);
     } finally {
@@ -78,14 +96,80 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setHasCompletedOnboarding(true);
   };
 
-  const authenticate = async () => {
-    await StorageService.setAuthenticated(true);
-    setIsAuthenticated(true);
+  const signIn = async (email: string, password: string) => {
+    try {
+      const response = await apiService.signIn(email, password);
+      
+      if (response.success && response.user && response.session) {
+        const userData: User = {
+          id: response.user.id,
+          email: response.user.email,
+          accessToken: response.session.access_token
+        };
+        
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
+        await AsyncStorage.setItem('supabase.auth.token', JSON.stringify({
+          access_token: response.session.access_token,
+          refresh_token: response.session.refresh_token
+        }));
+        
+        setUser(userData);
+        setIsAuthenticated(true);
+        
+        socketService.connect();
+      } else {
+        throw new Error(response.message || 'Sign in failed');
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
+    }
+  };
+
+  const signUp = async (email: string, password: string) => {
+    try {
+      const response = await apiService.signUp(email, password);
+      
+      if (response.success && response.user && response.session) {
+        const userData: User = {
+          id: response.user.id,
+          email: response.user.email,
+          accessToken: response.session.access_token
+        };
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
+        await AsyncStorage.setItem('supabase.auth.token', JSON.stringify({
+          access_token: response.session.access_token,
+          refresh_token: response.session.refresh_token
+        }));
+        
+        setUser(userData);
+        setIsAuthenticated(true);
+        
+        socketService.connect();
+      } else {
+        throw new Error(response.message || 'Sign up failed');
+      }
+    } catch (error) {
+      console.error('Sign up error:', error);
+      throw error;
+    }
   };
 
   const logout = async () => {
-    await StorageService.setAuthenticated(false);
-    setIsAuthenticated(false);
+    try {
+      await apiService.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    } finally {
+      await AsyncStorage.multiRemove(['user', 'supabase.auth.token']);
+      setUser(null);
+      setIsAuthenticated(false);
+      
+      socketService.disconnect();
+      
+      setScenesState({});
+      setAvatarsState({});
+    }
   };
 
   useEffect(() => {
@@ -214,10 +298,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     isLoading,
     hasCompletedOnboarding,
     isAuthenticated,
+    user,
     scenesState,
     avatarsState,
     completeOnboarding,
-    authenticate,
+    signIn,
+    signUp,
     logout,
     generateScenesForAvatar,
     getScenesForAvatar,

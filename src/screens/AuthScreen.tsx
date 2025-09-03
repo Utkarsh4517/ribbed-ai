@@ -1,91 +1,79 @@
 import React, { useState } from 'react';
-import { 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  TextInput, 
-  Alert, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
   KeyboardAvoidingView,
-  Platform 
+  Platform,
+  ScrollView,
 } from 'react-native';
-import { useAppContext } from '../contexts/AppContext';
-import { apiService } from '../services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppContext } from '../contexts/AppContext';
 
 export default function AuthScreen() {
-  const { authenticate } = useAppContext();
-  const [isLogin, setIsLogin] = useState(true);
+  const { signIn, signUp } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAuth = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both email and password');
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+      Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      if (isLogin) {
-        // Sign in
-        const result = await apiService.signIn(email.trim(), password);
-        Alert.alert('Success', 'Signed in successfully!');
-        authenticate(); // Navigate to main app
+      if (isSignUp) {
+        await signUp(email.trim(), password);
+        Alert.alert('Success', 'Account created successfully!');
       } else {
-        // Sign up
-        const result = await apiService.signUp(email.trim(), password);
-        Alert.alert(
-          'Account Created', 
-          'Please check your email to verify your account, then sign in.',
-          [
-            { text: 'OK', onPress: () => setIsLogin(true) }
-          ]
-        );
+        await signIn(email.trim(), password);
+        Alert.alert('Success', 'Signed in successfully!');
       }
     } catch (error) {
-      // @ts-ignore
-      Alert.alert('Error', error.message || 'Authentication failed');
+      Alert.alert(
+        'Authentication Error',
+        error instanceof Error ? error.message : 'Authentication failed'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setEmail('');
-    setPassword('');
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <KeyboardAvoidingView 
-        className="flex-1" 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
       >
-        <View className="flex-1 justify-center px-8">
-          <View className="items-center mb-8">
+        <ScrollView className="flex-1 px-6 py-8" showsVerticalScrollIndicator={false}>
+          <View className="items-center mb-12">
             <Text className="text-3xl font-bold text-gray-800 mb-2">
-              Ribbed AI
+              {isSignUp ? 'Create Account' : 'Welcome Back'}
             </Text>
-            <Text className="text-lg text-gray-600">
-              {isLogin ? 'Welcome back!' : 'Create your account'}
+            <Text className="text-gray-600 text-center">
+              {isSignUp
+                ? 'Sign up to start creating amazing AI videos'
+                : 'Sign in to continue creating AI videos'
+              }
             </Text>
           </View>
 
           <View className="space-y-4">
             <View>
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                Email
-              </Text>
+              <Text className="text-sm font-medium text-gray-700 mb-2">Email</Text>
               <TextInput
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-base"
+                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
                 placeholder="Enter your email"
                 value={email}
                 onChangeText={setEmail}
@@ -97,11 +85,9 @@ export default function AuthScreen() {
             </View>
 
             <View>
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                Password
-              </Text>
+              <Text className="text-sm font-medium text-gray-700 mb-2">Password</Text>
               <TextInput
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-base"
+                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
                 placeholder="Enter your password"
                 value={password}
                 onChangeText={setPassword}
@@ -113,37 +99,34 @@ export default function AuthScreen() {
             </View>
 
             <TouchableOpacity
-              className={`w-full py-4 rounded-lg items-center mt-6 ${
+              className={`rounded-lg py-4 items-center mt-6 ${
                 isLoading ? 'bg-gray-400' : 'bg-blue-500'
               }`}
               onPress={handleAuth}
               disabled={isLoading}
             >
               <Text className="text-white text-lg font-semibold">
-                {isLoading 
-                  ? 'Please wait...' 
-                  : isLogin 
-                    ? 'Sign In' 
-                    : 'Create Account'
+                {isLoading
+                  ? (isSignUp ? 'Creating Account...' : 'Signing In...')
+                  : (isSignUp ? 'Create Account' : 'Sign In')
                 }
               </Text>
             </TouchableOpacity>
 
-            <View className="items-center mt-6">
-              <Text className="text-gray-600 mb-2">
-                {isLogin 
-                  ? "Don't have an account?" 
-                  : "Already have an account?"
+            <TouchableOpacity
+              className="py-4 items-center"
+              onPress={() => setIsSignUp(!isSignUp)}
+              disabled={isLoading}
+            >
+              <Text className="text-blue-500 font-medium">
+                {isSignUp
+                  ? 'Already have an account? Sign In'
+                  : "Don't have an account? Sign Up"
                 }
               </Text>
-              <TouchableOpacity onPress={toggleMode} disabled={isLoading}>
-                <Text className="text-blue-500 font-semibold text-base">
-                  {isLogin ? 'Create Account' : 'Sign In'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
