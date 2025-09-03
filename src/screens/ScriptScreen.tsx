@@ -1,10 +1,25 @@
-import React, { useState } from 'react';
-import { Text, View, Image, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  Text, 
+  View, 
+  Image, 
+  ScrollView, 
+  TouchableOpacity, 
+  TextInput, 
+  Alert,
+  StatusBar,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  Modal
+} from 'react-native';
 import { RouteProp, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../types/navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiService, TTSOptions } from '../services/api';
+import WhiteButton from '../components/WhiteButton';
+import RedButton from '../components/RedButton';
 
 type ScriptScreenNavigationProp = StackNavigationProp<MainStackParamList, 'ScriptScreen'>;
 
@@ -16,8 +31,34 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
   const [isGenerating, setIsGenerating] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState('Aria');
+  const [showVoiceDropdown, setShowVoiceDropdown] = useState(false);
 
-  const voices = ['Aria', 'Roger', 'Sarah', 'Laura', 'Charlie'];
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+
+  const voices = [
+    { id: 'Aria', name: 'Aria', description: 'Warm & Professional' },
+    { id: 'Roger', name: 'Roger', description: 'Deep & Authoritative' },
+    { id: 'Sarah', name: 'Sarah', description: 'Friendly & Clear' },
+    { id: 'Laura', name: 'Laura', description: 'Elegant & Smooth' },
+    { id: 'Charlie', name: 'Charlie', description: 'Energetic & Young' }
+  ];
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
 
   const handleGenerateSpeech = async () => {
     if (!scriptText.trim()) {
@@ -25,8 +66,8 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
       return;
     }
 
-    if (scriptText.length > 5000) {
-      Alert.alert('Error', 'Text is too long. Maximum 5000 characters allowed.');
+    if (scriptText.length > 1000) {
+      Alert.alert('Error', 'Text is too long. Maximum 1000 characters allowed.');
       return;
     }
 
@@ -38,7 +79,7 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
         voice: selectedVoice,
         stability: 0.5,
         similarity_boost: 0.75,
-        speed: 1,
+        speed: 1.3,
         timestamps: false
       };
 
@@ -68,155 +109,213 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
     }
   };
 
+  const selectedVoiceData = voices.find(v => v.id === selectedVoice) || voices[0];
+
+  const renderVoiceDropdown = () => (
+    <Modal
+      visible={showVoiceDropdown}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setShowVoiceDropdown(false)}
+    >
+      <TouchableOpacity 
+        className="flex-1 bg-black/50 justify-center items-center px-8"
+        activeOpacity={1}
+        onPress={() => setShowVoiceDropdown(false)}
+      >
+        <TouchableOpacity 
+          className="bg-white rounded-2xl p-6 w-full max-w-sm"
+          activeOpacity={1}
+          onPress={() => {}}
+        >
+          <Text className="text-gray-800 text-lg font-sfpro-semibold mb-4 text-center">
+            Select Voice
+          </Text>
+          
+          {voices.map((voice) => (
+            <TouchableOpacity
+              key={voice.id}
+              onPress={() => {
+                setSelectedVoice(voice.id);
+                setShowVoiceDropdown(false);
+              }}
+              className={`p-4 rounded-xl mb-2 border-2 ${
+                selectedVoice === voice.id
+                  ? 'bg-[#FF5555]/10 border-[#FF5555]'
+                  : 'bg-gray-50 border-gray-200'
+              }`}
+            >
+              <Text className={`font-sfpro-semibold ${
+                selectedVoice === voice.id ? 'text-[#FF5555]' : 'text-gray-800'
+              }`}>
+                {voice.name}
+              </Text>
+              <Text className="text-gray-600 text-sm font-sfpro-regular mt-1">
+                {voice.description}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1 px-4 py-4">
-        <View className="flex-row items-center justify-between mb-6">
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            className="bg-white rounded-full p-2 shadow-sm"
-          >
-            <Text className="text-lg">←</Text>
-          </TouchableOpacity>
-          <Text className="text-xl font-bold text-gray-800">Script Generation</Text>
-          <View style={{ width: 36 }} />
-        </View>
-
-        <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 mb-6">
-          <Text className="text-lg font-semibold text-gray-800 mb-3">Selected Scene</Text>
-          
-          <View className="flex-row">
-            {scene.imageUrl ? (
-              <Image
-                source={{ uri: scene.imageUrl }}
-                style={{
-                  width: 120,
-                  height: 120,
-                  borderRadius: 8,
-                  backgroundColor: '#f3f4f6'
-                }}
-                resizeMode="cover"
-              />
-            ) : (
-              <View 
-                style={{
-                  width: 120,
-                  height: 120,
-                  borderRadius: 8,
-                  backgroundColor: '#f3f4f6'
-                }}
-                className="items-center justify-center border border-gray-200"
-              >
-                <Text className="text-xs text-gray-500 text-center px-2">
-                  No Image
-                </Text>
-              </View>
-            )}
-            
-            <View className="flex-1 ml-4">
-              <Text className="text-lg font-semibold text-gray-800 mb-2">
-                {scene.name}
-              </Text>
-              <Text className="text-sm text-gray-600">
-                {scene.description}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 mb-6">
-          <Text className="text-lg font-semibold text-gray-800 mb-4">Script Text</Text>
-          
-          <TextInput
-            value={scriptText}
-            onChangeText={setScriptText}
-            placeholder="Enter your script text here..."
-            multiline
-            numberOfLines={6}
-            className="bg-gray-50 rounded-lg p-4 text-gray-800 text-base"
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#FF5555" />
+      <SafeAreaView className="flex-1 bg-[#FF5555]">
+        <KeyboardAvoidingView 
+          className="flex-1"
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <Animated.View 
+            className="flex-1"
             style={{
-              minHeight: 150,
-              textAlignVertical: 'top'
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
             }}
-          />
-          
-          <View className="flex-row justify-between items-center mt-2">
-            <Text className="text-xs text-gray-500">
-              {scriptText.length}/5000 characters
-            </Text>
-            {scriptText.length > 4500 && (
-              <Text className="text-xs text-orange-500">
-                Approaching limit
-              </Text>
-            )}
-          </View>
-        </View>
-
-        <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 mb-6">
-          <Text className="text-lg font-semibold text-gray-800 mb-4">Select Voice</Text>
-          
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row space-x-3">
-              {voices.map((voice) => (
-                <TouchableOpacity
-                  key={voice}
-                  onPress={() => setSelectedVoice(voice)}
-                  className={`px-4 py-2 rounded-lg border ${
-                    selectedVoice === voice
-                      ? 'bg-blue-500 border-blue-500'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  <Text
-                    className={`font-medium ${
-                      selectedVoice === voice ? 'text-white' : 'text-gray-700'
-                    }`}
-                  >
-                    {voice}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
-        <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 mb-6">
-          <Text className="text-lg font-semibold text-gray-800 mb-4">Generate Speech</Text>
-          
-          <TouchableOpacity
-            className={`rounded-lg p-4 items-center ${
-              isGenerating || !scriptText.trim()
-                ? 'bg-gray-300'
-                : 'bg-blue-500'
-            }`}
-            onPress={handleGenerateSpeech}
-            disabled={isGenerating || !scriptText.trim()}
           >
-            <Text className="text-white font-semibold">
-              {isGenerating ? 'Generating Speech...' : 'Generate Speech'}
-            </Text>
-          </TouchableOpacity>
-
-          {audioUrl && (
-            <View className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-              <Text className="text-green-800 font-semibold mb-2">✅ Speech Generated Successfully!</Text>
+            {/* Header */}
+            <View className="flex-row items-center justify-between px-8 py-6">
               <TouchableOpacity
-                className="bg-green-500 rounded-lg p-3 items-center mb-3"
-                onPress={() => Alert.alert('Audio URL', audioUrl)}
+                onPress={() => navigation.goBack()}
+                className="bg-white/20 rounded-full p-3 border border-white/30"
               >
-                <Text className="text-white font-semibold">View Audio URL</Text>
+                <Text className="text-white text-lg">←</Text>
               </TouchableOpacity>
               
+              <View className="items-center">
+                <Text className="text-white text-2xl font-sfpro-semibold">Create Script</Text>
+                <Text className="text-white/80 text-sm font-sfpro-regular mt-1">
+                  {scene.name}
+                </Text>
+              </View>
+
               <TouchableOpacity
-                className="bg-purple-500 rounded-lg p-4 items-center"
-                onPress={handleCreateVideo}
+                onPress={() => setShowVoiceDropdown(true)}
+                className="bg-white/20 rounded-full px-4 py-3 border border-white/30"
               >
-                <Text className="text-white font-bold text-lg">🎬 Create Video</Text>
+                <Text className="text-white text-xs font-sfpro-medium">Voice</Text>
               </TouchableOpacity>
             </View>
-          )}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+
+            {/* Scene Image - Centered */}
+            <View className="items-center mb-8">
+              {scene.imageUrl ? (
+                <Image
+                  source={{ uri: scene.imageUrl }}
+                  style={{
+                    width: 200,
+                    height: 200,
+                    borderRadius: 20,
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                  }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View 
+                  style={{
+                    width: 200,
+                    height: 200,
+                    borderRadius: 20,
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                  }}
+                  className="items-center justify-center border-2 border-white/20"
+                >
+                  <Text className="text-white/60 text-sm font-sfpro-regular">
+                    No Image
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <ScrollView 
+              className="flex-1 px-8"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Voice Selection Display */}
+              <View className="bg-white/10 rounded-2xl p-4 border border-white/20 mb-6">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1">
+                    <Text className="text-white/80 text-sm font-sfpro-regular mb-1">
+                      Selected Voice
+                    </Text>
+                    <Text className="text-white text-lg font-sfpro-semibold">
+                      {selectedVoiceData.name}
+                    </Text>
+                    <Text className="text-white/70 text-sm font-sfpro-regular">
+                      {selectedVoiceData.description}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setShowVoiceDropdown(true)}
+                    className="bg-white/20 rounded-full px-4 py-2 border border-white/30"
+                  >
+                    <Text className="text-white text-sm font-sfpro-medium">Change</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Script Text */}
+              <View className="bg-white/10 rounded-2xl p-6 border border-white/20 mb-6">
+                <Text className="text-white text-lg font-sfpro-semibold mb-4">Your Script</Text>
+                
+                <TextInput
+                  value={scriptText}
+                  onChangeText={setScriptText}
+                  placeholder="What should your avatar say? Write your script here..."
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  multiline
+                  className="bg-white/10 border border-white/20 rounded-2xl p-4 text-white text-base font-sfpro-regular"
+                  style={{
+                    minHeight: 120,
+                    textAlignVertical: 'top'
+                  }}
+                />
+                
+                <View className="flex-row justify-between items-center mt-3">
+                  <Text className="text-xs text-white/60 font-sfpro-regular">
+                    {scriptText.length}/1000 characters
+                  </Text>
+                  {scriptText.length > 900 && (
+                    <Text className="text-xs text-white/80 font-sfpro-medium">
+                      Approaching limit
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </ScrollView>
+
+            {/* Bottom Actions */}
+            <View className="px-8 pb-8">
+              {!audioUrl ? (
+                <WhiteButton
+                  title={isGenerating ? 'Generating Speech...' : 'Generate Speech'}
+                  onPress={handleGenerateSpeech}
+                  disabled={isGenerating || !scriptText.trim()}
+                />
+              ) : (
+                <View>
+                  <View className="bg-white/10 rounded-2xl p-4 border border-white/20 mb-4">
+                    <Text className="text-white font-sfpro-semibold text-center mb-2">
+                      Speech Ready!
+                    </Text>
+                    <Text className="text-white/80 text-sm font-sfpro-regular text-center">
+                      Your audio has been generated successfully
+                    </Text>
+                  </View>
+                  <RedButton
+                    title="Create Video"
+                    onPress={handleCreateVideo}
+                  />
+                </View>
+              )}
+            </View>
+          </Animated.View>
+        </KeyboardAvoidingView>
+        
+        {renderVoiceDropdown()}
+      </SafeAreaView>
+    </>
   );
 }
