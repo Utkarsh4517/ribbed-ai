@@ -1,0 +1,29 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/SFProDisplay-Bold.ttf",
+      "sha1": "8c67a84fce342cf54ef01e9b30b46f75048aefd3"
+    },
+    {
+      "path": "assets/fonts/SFProDisplay-Light.ttf",
+      "sha1": "517af7eebd05cdafe07790446d6ba96fddfe09de"
+    },
+    {
+      "path": "assets/fonts/SFProDisplay-Medium.ttf",
+      "sha1": "063378dbd1b8b0b03263d86714a455ae11afb743"
+    },
+    {
+      "path": "assets/fonts/SFProDisplay-Regular.ttf",
+      "sha1": "00e029c09a98fd014a7a1013e7efe357b40da352"
+    },
+    {
+      "path": "assets/fonts/SFProDisplay-Semibold.ttf",
+      "sha1": "9dd7c8e0a103ff7d074b046272a87e4a0565e6b2"
+    },
+    {
+      "path": "assets/fonts/SortsMillGoudy-Regular.ttf",
+      "sha1": "c512680d05fee63bd3512f71835914a3a4d1201d"
+    }
+  ]
+}

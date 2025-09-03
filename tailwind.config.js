@@ -4,7 +4,16 @@ module.exports = {
   content: ["./App.tsx", "./src/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        'sfpro-regular': ['SFProDisplay-Regular'],
+        'sfpro-medium': ['SFProDisplay-Medium'],
+        'sfpro-semibold': ['SFProDisplay-Semibold'],
+        'sfpro-light': ['SFProDisplay-Light'],
+        'sfpro-bold': ['SFProDisplay-Bold'],
+        'goudy': ['SortsMillGoudy-Regular'],
+      },
+    },
   },
   plugins: [],
 }
