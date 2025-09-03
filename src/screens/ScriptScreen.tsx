@@ -79,7 +79,7 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
         voice: selectedVoice,
         stability: 0.5,
         similarity_boost: 0.75,
-        speed: 1.3,
+        speed: 1,
         timestamps: false
       };
 
