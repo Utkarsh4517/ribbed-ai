@@ -187,7 +187,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         scenes: [],
         totalGenerated: 0,
         isLoading: true,
-        hasGenerated: false
+        hasGenerated: false,
       }
     }));
 
@@ -201,10 +201,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             scenes: data.scenes,
             totalGenerated: data.totalGenerated,
             isLoading: false,
-            hasGenerated: true
+            hasGenerated: true,
           }
         }));
         console.log('Scenes generated:', data.scenes);
+        
       } else {
         throw new Error('Failed to generate scenes');
       }
@@ -216,7 +217,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           scenes: [],
           totalGenerated: 0,
           isLoading: false,
-          hasGenerated: false
+          hasGenerated: false,
         }
       }));
       throw error;
@@ -293,6 +294,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       hasGenerated: false
     };
   };
+
 
   const value: AppContextType = {
     isLoading,

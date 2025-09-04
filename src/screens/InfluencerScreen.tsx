@@ -30,6 +30,7 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
   const { scenes, totalGenerated, isLoading, hasGenerated } = getScenesForAvatar(avatar.imageUrl || '');
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -93,7 +94,6 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
                       console.error(`Scene ${scene.name} failed to load:`, error.nativeEvent.error);
                     }}
                   />
-                 
                 </View>
               ) : (
                 <View>
