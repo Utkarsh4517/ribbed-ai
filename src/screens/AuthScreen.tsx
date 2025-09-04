@@ -128,7 +128,7 @@ export default function AuthScreen() {
                 </View>
 
                 <View>
-                  <Text className="text-white font-sfpro-medium text-base mb-3 ml-2">
+                  <Text className="text-white font-sfpro-medium text-base my-3 ml-2 ">
                     Password
                   </Text>
                   <TextInput

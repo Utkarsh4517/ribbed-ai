@@ -25,6 +25,7 @@ import WhiteButton from '../components/WhiteButton';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const maxImageWidth = (screenWidth * 0.85) / 2 - 10; 
+const imageHeight = maxImageWidth * (16 / 9); // Calculate 9:16 aspect ratio height
 
 type HomeScreenNavigationProp = StackNavigationProp<MainStackParamList, 'Home'>;
 
@@ -114,7 +115,7 @@ export default function HomeScreen() {
                       source={{ uri: avatar.imageUrl }}
                       style={{
                         width: maxImageWidth,
-                        height: maxImageWidth,
+                        height: imageHeight, // Changed from maxImageWidth to imageHeight
                         borderRadius: 12,
                         backgroundColor: 'rgba(255, 255, 255, 0.1)',
                         borderWidth: isSelected ? 3 : 0,
@@ -125,18 +126,13 @@ export default function HomeScreen() {
                         console.error(`Avatar ${avatar.id} failed to load:`, error.nativeEvent.error);
                       }}
                     />
-                    <Text className={`text-xs mt-2 text-center font-sfpro-medium ${
-                      isSelected ? 'text-white' : 'text-white/70'
-                    }`}>
-                      Variation {avatar.variation}
-                      {isSelected && ' ✓'}
-                    </Text>
+                  
                   </View>
                 ) : (
                   <View 
                     style={{
                       width: maxImageWidth,
-                      height: maxImageWidth,
+                      height: imageHeight, 
                       borderRadius: 12,
                       backgroundColor: 'rgba(255, 255, 255, 0.1)',
                       borderWidth: isSelected ? 3 : 0,
@@ -173,7 +169,7 @@ export default function HomeScreen() {
               <View
                 style={{
                   width: maxImageWidth,
-                  height: maxImageWidth,
+                  height: imageHeight, // Changed from maxImageWidth to imageHeight
                   borderRadius: 12,
                   backgroundColor: 'rgba(255, 255, 255, 0.2)'
                 }}

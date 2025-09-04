@@ -19,6 +19,7 @@ import WhiteButton from '../components/WhiteButton';
 
 const { width: screenWidth } = Dimensions.get('window');
 const maxImageWidth = (screenWidth * 0.85) / 2 - 10;
+const imageHeight = maxImageWidth * (16 / 9); 
 
 type InfluencerScreenNavigationProp = StackNavigationProp<MainStackParamList, 'InfluencerScreen'>;
 
@@ -83,7 +84,7 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
                     source={{ uri: scene.imageUrl }}
                     style={{
                       width: maxImageWidth,
-                      height: maxImageWidth,
+                      height: imageHeight,
                       borderRadius: 12,
                       backgroundColor: 'rgba(255, 255, 255, 0.1)'
                     }}
@@ -92,16 +93,14 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
                       console.error(`Scene ${scene.name} failed to load:`, error.nativeEvent.error);
                     }}
                   />
-                  <Text className="text-xs font-sfpro-medium text-white mt-2 text-center">
-                    {scene.name}
-                  </Text>
+                 
                 </View>
               ) : (
                 <View>
                   <View 
                     style={{
                       width: maxImageWidth,
-                      height: maxImageWidth,
+                      height: imageHeight,
                       borderRadius: 12,
                       backgroundColor: 'rgba(255, 255, 255, 0.1)'
                     }}
@@ -133,7 +132,7 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
               <View
                 style={{
                   width: maxImageWidth,
-                  height: maxImageWidth,
+                  height: imageHeight,
                   borderRadius: 12,
                   backgroundColor: 'rgba(255, 255, 255, 0.2)'
                 }}
