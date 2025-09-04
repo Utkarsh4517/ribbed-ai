@@ -148,6 +148,23 @@ export const apiService = {
     return response.json();
   },
 
+  async saveAvatar(imageUrl: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/save-avatar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ imageUrl }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
   async createScenes(avatarUrl: string): Promise<CreateScenesResponse> {
     const response = await fetch(`${API_BASE_URL}/create-scenes`, {
       method: 'POST',

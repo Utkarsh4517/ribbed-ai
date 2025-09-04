@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Avatar } from '../services/api';
+import { Avatar, apiService } from '../services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MainStackParamList } from '../types/navigation';
 import { useAppContext } from '../contexts/AppContext';
@@ -89,9 +89,15 @@ export default function HomeScreen() {
     setIsFullScreenVisible(false);
   };
 
-  const handleNextButton = () => {
-    if (selectedAvatar) {
-      navigation.navigate('InfluencerScreen', { avatar: selectedAvatar });
+  const handleNextButton = async () => {
+    if (selectedAvatar && selectedAvatar.imageUrl) {
+      try {
+        await apiService.saveAvatar(selectedAvatar.imageUrl);
+        navigation.navigate('InfluencerScreen', { avatar: selectedAvatar });
+      } catch (error) {
+        console.error('Failed to save avatar:', error);
+        Alert.alert('Error', 'Could not save the selected avatar. Please try again.');
+      }
     }
   };
 
