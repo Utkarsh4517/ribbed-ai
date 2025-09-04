@@ -11,7 +11,8 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
-  Modal
+  Modal,
+  ActivityIndicator // Add ActivityIndicator import
 } from 'react-native';
 import { RouteProp, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -88,7 +89,12 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
       if (result.success && result.audioUrl) {
         setAudioUrl(result.audioUrl);
         console.log('Audio URL:', result.audioUrl);
-        Alert.alert('Success', 'Speech generated successfully!');
+        
+        // Automatically navigate to QueueScreen when audio is ready
+        navigation.navigate('QueueScreen', { 
+          scene: scene,
+          audioUrl: result.audioUrl 
+        });
       } else {
         throw new Error(result.error || 'Failed to generate speech');
       }
@@ -205,8 +211,8 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
                 <Image
                   source={{ uri: scene.imageUrl }}
                   style={{
-                    width: 200,
-                    height: 200,
+                    width: 160,
+                    height: 160 * (16 / 9), // Changed to 9:16 aspect ratio
                     borderRadius: 20,
                     backgroundColor: 'rgba(255, 255, 255, 0.1)'
                   }}
@@ -215,8 +221,8 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
               ) : (
                 <View 
                   style={{
-                    width: 200,
-                    height: 200,
+                    width: 160,
+                    height: 160 * (16 / 9), // Changed to 9:16 aspect ratio
                     borderRadius: 20,
                     backgroundColor: 'rgba(255, 255, 255, 0.1)'
                   }}
@@ -233,28 +239,7 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
               className="flex-1 px-8"
               showsVerticalScrollIndicator={false}
             >
-              {/* Voice Selection Display */}
-              <View className="bg-white/10 rounded-2xl p-4 border border-white/20 mb-6">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-1">
-                    <Text className="text-white/80 text-sm font-sfpro-regular mb-1">
-                      Selected Voice
-                    </Text>
-                    <Text className="text-white text-lg font-sfpro-semibold">
-                      {selectedVoiceData.name}
-                    </Text>
-                    <Text className="text-white/70 text-sm font-sfpro-regular">
-                      {selectedVoiceData.description}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => setShowVoiceDropdown(true)}
-                    className="bg-white/20 rounded-full px-4 py-2 border border-white/30"
-                  >
-                    <Text className="text-white text-sm font-sfpro-medium">Change</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+          
 
               {/* Script Text */}
               <View className="bg-white/10 rounded-2xl p-6 border border-white/20 mb-6">
@@ -275,7 +260,7 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
                 
                 <View className="flex-row justify-between items-center mt-3">
                   <Text className="text-xs text-white/60 font-sfpro-regular">
-                    {scriptText.length}/1000 characters
+                    {scriptText.length}/1000 characters (Should not be more than 30 seconds)
                   </Text>
                   {scriptText.length > 900 && (
                     <Text className="text-xs text-white/80 font-sfpro-medium">
@@ -288,28 +273,28 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
 
             {/* Bottom Actions */}
             <View className="px-8 pb-8">
-              {!audioUrl ? (
-                <WhiteButton
-                  title={isGenerating ? 'Generating Speech...' : 'Generate Speech'}
-                  onPress={handleGenerateSpeech}
-                  disabled={isGenerating || !scriptText.trim()}
-                />
-              ) : (
-                <View>
-                  <View className="bg-white/10 rounded-2xl p-4 border border-white/20 mb-4">
-                    <Text className="text-white font-sfpro-semibold text-center mb-2">
-                      Speech Ready!
-                    </Text>
-                    <Text className="text-white/80 text-sm font-sfpro-regular text-center">
-                      Your audio has been generated successfully
-                    </Text>
-                  </View>
-                  <RedButton
-                    title="Create Video"
-                    onPress={handleCreateVideo}
+              <TouchableOpacity
+                onPress={handleGenerateSpeech}
+                disabled={isGenerating || !scriptText.trim()}
+                className={`h-14 rounded-2xl items-center justify-center flex-row ${
+                  scriptText.trim() && !isGenerating
+                    ? 'bg-white'
+                    : 'bg-white/20 border border-white/30'
+                }`}
+              >
+                {isGenerating && (
+                  <ActivityIndicator 
+                    size="small" 
+                    color={scriptText.trim() ? '#FF5555' : 'rgba(255, 255, 255, 0.6)'} 
+                    style={{ marginRight: 8 }}
                   />
-                </View>
-              )}
+                )}
+                <Text className={`text-base font-sfpro-semibold ${
+                  scriptText.trim() && !isGenerating ? 'text-[#FF5555]' : 'text-white/60'
+                }`}>
+                  {isGenerating ? 'Generating Speech...' : 'Generate Speech'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </KeyboardAvoidingView>

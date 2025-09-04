@@ -320,7 +320,6 @@ export default function QueueScreen({ route }: QueueScreenProps) {
             transform: [{ translateY: slideAnim }]
           }}
         >
-          {/* Header */}
           <View className="flex-row items-center justify-between px-8 py-6">
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -344,14 +343,13 @@ export default function QueueScreen({ route }: QueueScreenProps) {
             </TouchableOpacity>
           </View>
 
-          {/* Scene Image - Centered */}
           <View className="items-center mb-8">
             {scene.imageUrl ? (
               <Image
                 source={{ uri: scene.imageUrl }}
                 style={{
-                  width: 200,
-                  height: 200,
+                  width: 160,
+                  height: 160 * (16 / 9),
                   borderRadius: 20,
                   backgroundColor: 'rgba(255, 255, 255, 0.1)'
                 }}
@@ -360,8 +358,8 @@ export default function QueueScreen({ route }: QueueScreenProps) {
             ) : (
               <View 
                 style={{
-                  width: 200,
-                  height: 200,
+                  width: 160,
+                  height: 160 * (16 / 9),
                   borderRadius: 20,
                   backgroundColor: 'rgba(255, 255, 255, 0.1)'
                 }}
@@ -378,32 +376,13 @@ export default function QueueScreen({ route }: QueueScreenProps) {
             className="flex-1 px-8"
             showsVerticalScrollIndicator={false}
           >
-            {/* Audio Status */}
-            <View className="bg-white/10 rounded-2xl p-6 border border-white/20 mb-6">
-              <Text className="text-white text-lg font-sfpro-semibold mb-4">Audio Ready</Text>
-              <View className="flex-row items-center justify-between">
-                <View className="flex-1">
-                  <Text className="text-white/80 font-sfpro-regular">
-                    Your speech has been generated successfully
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  className="bg-white/20 rounded-full px-4 py-2 border border-white/30"
-                  onPress={() => Alert.alert('Audio URL', audioUrl)}
-                >
-                  <Text className="text-white text-sm font-sfpro-medium">Preview</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Current Generation or Start Button */}
             {currentJob ? (
               renderCurrentGeneration()
             ) : (
               <View className="mb-6">
                 {!isGenerating ? (
                   <WhiteButton
-                    title="Start Video Generation"
+                    title="Render Video"
                     onPress={handleStartVideoGeneration}
                   />
                 ) : (
