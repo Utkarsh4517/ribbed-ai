@@ -31,12 +31,19 @@ type HomeScreenNavigationProp = StackNavigationProp<MainStackParamList, 'Home'>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const { generateAvatarsForPrompt, getAvatarsForPrompt } = useAppContext();
+  const { 
+    generateAvatarsForPrompt, 
+    getAvatarsForPrompt, 
+    publicAvatars, 
+    loadPublicAvatars,
+    getPublicAvatarScenes,
+  } = useAppContext();
   
   const [inputText, setInputText] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState<Avatar | null>(null);
   const [isFullScreenVisible, setIsFullScreenVisible] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('');
+  const [showCustomAvatars, setShowCustomAvatars] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const { avatars, isLoading } = getAvatarsForPrompt(currentPrompt);
@@ -54,14 +61,16 @@ export default function HomeScreen() {
         useNativeDriver: true,
       })
     ]).start();
+
+    loadPublicAvatars();
   }, []);
 
   const sendPrompt = async () => {
     if (!inputText.trim() || isLoading) return;
-
     const trimmedPrompt = inputText.trim();
     setCurrentPrompt(trimmedPrompt);
     setSelectedAvatar(null);
+    setShowCustomAvatars(true);
 
     try {
       await generateAvatarsForPrompt(trimmedPrompt);
@@ -92,11 +101,22 @@ export default function HomeScreen() {
   const handleNextButton = async () => {
     if (selectedAvatar && selectedAvatar.imageUrl) {
       try {
-        await apiService.saveAvatar(selectedAvatar.imageUrl);
-        navigation.navigate('InfluencerScreen', { avatar: selectedAvatar });
+        if (selectedAvatar.isPublic) {
+          const scenes = await getPublicAvatarScenes(selectedAvatar.id);
+          navigation.navigate('InfluencerScreen', { 
+            avatar: selectedAvatar, 
+            preloadedScenes: scenes,
+            isPublicAvatar: true 
+          });
+        } else {
+          navigation.navigate('InfluencerScreen', { 
+            avatar: selectedAvatar,
+            isPublicAvatar: false 
+          });
+        }
       } catch (error) {
-        console.error('Failed to save avatar:', error);
-        Alert.alert('Error', 'Could not save the selected avatar. Please try again.');
+        console.error('Failed to process avatar:', error);
+        Alert.alert('Error', 'Could not process the selected avatar. Please try again.');
       }
     }
   };
@@ -235,49 +255,58 @@ export default function HomeScreen() {
       return (
         <View className="bg-[#FF5555] px-8 pb-8 pt-6">
           <WhiteButton
-            title="Continue"
+            title={selectedAvatar.isPublic ? "Continue with Selected Avatar" : "Continue"}
             onPress={handleNextButton}
           />
+          {selectedAvatar.isPublic && (
+            <Text className="text-white/80 text-sm text-center mt-2 font-sfpro-regular">
+              Scenes will load instantly from database
+            </Text>
+          )}
         </View>
       );
     }
 
-    return (
-      <View className="bg-[#FF5555] px-8 pb-8 pt-6">
-        <View className="flex-row items-center gap-x-3">
-          <TextInput
-            className="flex-1 bg-white/10 border border-white/20 rounded-2xl px-6 text-white text-base font-sfpro-regular"
-            style={{ 
-              height: 56,
-              textAlignVertical: 'center', 
-              includeFontPadding: false,
-              lineHeight: 20
-            }}
-            placeholder="Describe the avatar you want..."
-            placeholderTextColor="rgba(255, 255, 255, 0.6)"
-            value={inputText}
-            onChangeText={setInputText}
-            maxLength={500}
-            editable={!isLoading}
-          />
-          <TouchableOpacity
-            className={`w-14 h-14 rounded-full items-center justify-center border-2 ${
-              inputText.trim() && !isLoading
-                ? 'bg-white border-white'
-                : 'bg-white/20 border-white/30'
-            }`}
-            onPress={sendPrompt}
-            disabled={!inputText.trim() || isLoading}
-          >
-            <Text className={`text-xl font-sfpro-semibold ${
-              inputText.trim() && !isLoading ? 'text-[#FF5555]' : 'text-white/60'
-            }`}>
-              →
-            </Text>
-          </TouchableOpacity>
+    if (showCustomAvatars) {
+      return (
+        <View className="bg-[#FF5555] px-8 pb-8 pt-6">
+          <View className="flex-row items-center gap-x-3">
+            <TextInput
+              className="flex-1 bg-white/10 border border-white/20 rounded-2xl px-6 text-white text-base font-sfpro-regular"
+              style={{ 
+                height: 56,
+                textAlignVertical: 'center', 
+                includeFontPadding: false,
+                lineHeight: 20
+              }}
+              placeholder="Describe the avatar you want..."
+              placeholderTextColor="rgba(255, 255, 255, 0.6)"
+              value={inputText}
+              onChangeText={setInputText}
+              maxLength={500}
+              editable={!isLoading}
+            />
+            <TouchableOpacity
+              className={`w-14 h-14 rounded-full items-center justify-center border-2 ${
+                inputText.trim() && !isLoading
+                  ? 'bg-white border-white'
+                  : 'bg-white/20 border-white/30'
+              }`}
+              onPress={sendPrompt}
+              disabled={!inputText.trim() || isLoading}
+            >
+              <Text className={`text-xl font-sfpro-semibold ${
+                inputText.trim() && !isLoading ? 'text-[#FF5555]' : 'text-white/60'
+              }`}>
+                →
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    );
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -314,19 +343,79 @@ export default function HomeScreen() {
               className="flex-1 px-8"
               showsVerticalScrollIndicator={false}
             >
-              {!currentPrompt && !isLoading && (
-                <View className="items-center py-12">
-                  <Text className="text-white/70 text-lg text-center font-sfpro-regular leading-relaxed">
-                    Describe your ideal avatar and we'll generate multiple variations for you to choose from
-                  </Text>
-                </View>
+              {!showCustomAvatars && (
+                <>
+                  {publicAvatars.length > 0 && (
+                    <View className="mb-6">
+                      <View className="flex-row items-center justify-between mb-4">
+                        <Text className="text-white text-xl font-sfpro-semibold">
+                          Popular Avatars
+                        </Text>
+                        <Text className="text-white/60 text-sm font-sfpro-regular">
+                          Instant • Free
+                        </Text>
+                      </View>
+                      {renderAvatarGrid(publicAvatars)}
+                    </View>
+                  )}
+
+                  <TouchableOpacity
+                    className="bg-white/10 border-2 border-dashed border-white/30 rounded-2xl p-8 items-center justify-center mb-6"
+                    style={{ minHeight: 120 }}
+                    onPress={() => setShowCustomAvatars(true)}
+                  >
+                    <Text className="text-white text-6xl mb-2">+</Text>
+                    <Text className="text-white text-lg font-sfpro-semibold mb-1">
+                      Create Custom Avatar
+                    </Text>
+                    <Text className="text-white/60 text-sm text-center font-sfpro-regular">
+                      Generate unique avatars from your description
+                    </Text>
+                  </TouchableOpacity>
+
+                  {publicAvatars.length === 0 && (
+                    <View className="items-center py-12">
+                      <Text className="text-white/70 text-lg text-center font-sfpro-regular leading-relaxed">
+                        No public avatars available yet. Create your own custom avatar below!
+                      </Text>
+                    </View>
+                  )}
+                </>
               )}
 
-              {isLoading && renderSkeletonGrid()}
-              
-              {!isLoading && avatars.length > 0 && (
+              {showCustomAvatars && (
                 <>
-                  {renderAvatarGrid(avatars)}
+                  <View className="flex-row items-center justify-between mb-4">
+                    <Text className="text-white text-xl font-sfpro-semibold">
+                      Custom Avatars
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setShowCustomAvatars(false);
+                        setCurrentPrompt('');
+                        setSelectedAvatar(null);
+                      }}
+                      className="bg-white/20 rounded-full px-4 py-2"
+                    >
+                      <Text className="text-white text-sm font-sfpro-medium">← Back</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {!currentPrompt && !isLoading && (
+                    <View className="items-center py-12">
+                      <Text className="text-white/70 text-lg text-center font-sfpro-regular leading-relaxed">
+                        Describe your ideal avatar and we'll generate multiple variations for you to choose from
+                      </Text>
+                    </View>
+                  )}
+
+                  {isLoading && renderSkeletonGrid()}
+                  
+                  {!isLoading && avatars.length > 0 && (
+                    <>
+                      {renderAvatarGrid(avatars)}
+                    </>
+                  )}
                 </>
               )}
             </ScrollView>

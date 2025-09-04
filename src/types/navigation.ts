@@ -12,7 +12,11 @@ export type RootStackParamList = {
   
   export type MainStackParamList = {
     Home: undefined;
-    InfluencerScreen: { avatar: Avatar };
+    InfluencerScreen: { 
+      avatar: Avatar; 
+      preloadedScenes?: Scene[]; 
+      isPublicAvatar?: boolean; 
+    };
     SceneScreen: undefined;
     ScriptScreen: { scene: Scene };
     QueueScreen: { scene: Scene; audioUrl: string };

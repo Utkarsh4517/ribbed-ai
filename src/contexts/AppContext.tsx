@@ -36,6 +36,7 @@ interface AppContextType {
   user: User | null;
   scenesState: ScenesState;
   avatarsState: AvatarsState;
+  publicAvatars: Avatar[];
   completeOnboarding: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -44,6 +45,9 @@ interface AppContextType {
   getScenesForAvatar: (avatarUrl: string) => { scenes: Scene[]; totalGenerated: number; isLoading: boolean; hasGenerated: boolean };
   generateAvatarsForPrompt: (prompt: string) => Promise<void>;
   getAvatarsForPrompt: (prompt: string) => { avatars: Avatar[]; totalGenerated: number; totalRequested: number; isLoading: boolean; hasGenerated: boolean };
+  loadPublicAvatars: () => Promise<void>;
+  getPublicAvatarScenes: (avatarId: number) => Promise<Scene[]>;
+  saveSelectedAvatarWithScenes: (avatar: Avatar, scenes: Scene[]) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -67,6 +71,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [scenesState, setScenesState] = useState<ScenesState>({});
   const [avatarsState, setAvatarsState] = useState<AvatarsState>({});
+  const [publicAvatars, setPublicAvatars] = useState<Avatar[]>([]);
 
   const checkAppState = async () => {
     try {
@@ -295,6 +300,39 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     };
   };
 
+  const loadPublicAvatars = async () => {
+    try {
+      const response = await apiService.getPublicAvatars();
+      if (response.success) {
+        setPublicAvatars(response.avatars);
+      }
+    } catch (error) {
+      console.error('Error loading public avatars:', error);
+    }
+  };
+
+  const getPublicAvatarScenes = async (avatarId: number): Promise<Scene[]> => {
+    try {
+      const response = await apiService.getAvatarScenes(avatarId);
+      if (response.success) {
+        return response.scenes;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error getting public avatar scenes:', error);
+      return [];
+    }
+  };
+
+  const saveSelectedAvatarWithScenes = async (avatar: Avatar, scenes: Scene[]) => {
+    try {
+      await apiService.saveAvatarWithScenes(avatar, scenes);
+    } catch (error) {
+      console.error('Error saving avatar with scenes:', error);
+      throw error;
+    }
+  };
+
 
   const value: AppContextType = {
     isLoading,
@@ -303,6 +341,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     user,
     scenesState,
     avatarsState,
+    publicAvatars,
     completeOnboarding,
     signIn,
     signUp,
@@ -311,6 +350,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     getScenesForAvatar,
     generateAvatarsForPrompt,
     getAvatarsForPrompt,
+    loadPublicAvatars,
+    getPublicAvatarScenes,
+    saveSelectedAvatarWithScenes,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

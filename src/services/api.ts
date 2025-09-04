@@ -13,6 +13,10 @@ export interface Avatar {
   imageUrl?: string;
   variation: number;
   error?: string;
+  originalPrompt?: string;
+  usageCount?: number;
+  createdAt?: string;
+  isPublic?: boolean; 
 }
 
 export interface Scene {
@@ -131,6 +135,98 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 }
 
 export const apiService = {
+  async getPublicAvatars(): Promise<{ success: boolean; avatars: Avatar[] }> {
+    const response = await fetch(`${API_BASE_URL}/public-avatars`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    const transformedAvatars = data.avatars.map((avatar: any) => ({
+      id: avatar.id,
+      name: `Avatar ${avatar.id}`,
+      appearance: avatar.appearance_description || 'Public Avatar',
+      imageUrl: avatar.image_url,
+      variation: avatar.variation_number || 1,
+      originalPrompt: avatar.original_prompt,
+      usageCount: avatar.usage_count,
+      createdAt: avatar.created_at,
+      isPublic: true
+    }));
+
+    return {
+      success: data.success,
+      avatars: transformedAvatars
+    };
+  },
+
+  async getAvatarScenes(avatarId: number): Promise<{ success: boolean; scenes: Scene[] }> {
+    const response = await fetch(`${API_BASE_URL}/avatar/${avatarId}/scenes`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    const transformedScenes = data.scenes.map((scene: any) => ({
+      id: scene.id,
+      name: scene.scene_name,
+      description: scene.scene_description,
+      imageUrl: scene.image_url,
+      originalAvatarUrl: '', // Will be set by the caller
+    }));
+
+    return {
+      success: data.success,
+      scenes: transformedScenes
+    };
+  },
+
+  async saveAvatarWithScenes(avatarData: Avatar, scenesData: Scene[]): Promise<any> {
+    const headers = await getAuthHeaders();
+    
+    const response = await fetch(`${API_BASE_URL}/save-avatar-with-scenes`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ 
+        avatarData: {
+          imageUrl: avatarData.imageUrl,
+          originalPrompt: avatarData.originalPrompt,
+          variation: avatarData.variation,
+          appearance: avatarData.appearance
+        },
+        scenesData: scenesData.map(scene => ({
+          id: scene.id,
+          name: scene.name,
+          description: scene.description,
+          imageUrl: scene.imageUrl
+        }))
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
   async createAvatar(prompt: string): Promise<CreateAvatarResponse> {
     const response = await fetch(`${API_BASE_URL}/create-avatar`, {
       method: 'POST',

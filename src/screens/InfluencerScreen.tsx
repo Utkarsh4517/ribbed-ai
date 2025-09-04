@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Text, 
   View, 
@@ -15,8 +15,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../types/navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppContext } from '../contexts/AppContext';
+import { Scene } from '../services/api';
 import WhiteButton from '../components/WhiteButton';
-
 const { width: screenWidth } = Dimensions.get('window');
 const maxImageWidth = (screenWidth * 0.85) / 2 - 10;
 const imageHeight = maxImageWidth * (16 / 9); 
@@ -24,12 +24,18 @@ const imageHeight = maxImageWidth * (16 / 9);
 type InfluencerScreenNavigationProp = StackNavigationProp<MainStackParamList, 'InfluencerScreen'>;
 
 export default function InfluencerScreen({ route }: { route: RouteProp<MainStackParamList, 'InfluencerScreen'> }) {
-  const { avatar } = route.params;
+  const { avatar, preloadedScenes, isPublicAvatar } = route.params;
   const navigation = useNavigation<InfluencerScreenNavigationProp>();
-  const { generateScenesForAvatar, getScenesForAvatar } = useAppContext();
-  const { scenes, totalGenerated, isLoading, hasGenerated } = getScenesForAvatar(avatar.imageUrl || '');
+  const { generateScenesForAvatar, getScenesForAvatar, saveSelectedAvatarWithScenes } = useAppContext();
+  const [localScenes, setLocalScenes] = useState<Scene[]>(preloadedScenes || []);
+  const [localIsLoading, setLocalIsLoading] = useState(!isPublicAvatar && !preloadedScenes);
+  const [selectedScene, setSelectedScene] = useState<Scene | null>(null);
+  const { scenes: generatedScenes, totalGenerated, isLoading: contextLoading, hasGenerated } = 
+    getScenesForAvatar(avatar.imageUrl || '');
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+  const scenes = isPublicAvatar ? localScenes : generatedScenes;
+  const isLoading = isPublicAvatar ? localIsLoading : contextLoading;
 
   useEffect(() => {
     Animated.parallel([
@@ -44,11 +50,13 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
         useNativeDriver: true,
       })
     ]).start();
-
-    if (avatar.imageUrl && !hasGenerated && !isLoading) {
+    if (!isPublicAvatar && avatar.imageUrl && !hasGenerated && !contextLoading) {
       handleGenerateScenes();
     }
-  }, [avatar.imageUrl, hasGenerated, isLoading]);
+    if (isPublicAvatar && preloadedScenes) {
+      setLocalIsLoading(false);
+    }
+  }, [avatar.imageUrl, hasGenerated, contextLoading, isPublicAvatar, preloadedScenes]);
 
   const handleGenerateScenes = async () => {
     if (!avatar.imageUrl) {
@@ -63,7 +71,16 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
     }
   };
 
-  const handleSceneSelect = (scene: any) => {
+  const handleSceneSelect = async (scene: Scene) => {
+    setSelectedScene(scene);
+    if (!isPublicAvatar && avatar && scenes.length > 0) {
+      try {
+        await saveSelectedAvatarWithScenes(avatar, scenes);
+      } catch (error) {
+        console.error('Failed to save avatar with scenes:', error);
+      }
+    }
+    
     navigation.navigate('ScriptScreen', { scene });
   };
 
@@ -183,23 +200,33 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
             
             {!isLoading && scenes.length > 0 && (
               <>
-                <Text className="text-white/80 text-base font-sfpro-regular mb-4">
-                  Tap on a scene to continue with your video creation
-                </Text>
+                <View className="flex-row items-center justify-between mb-4">
+                  <Text className="text-white/80 text-base font-sfpro-regular">
+                    Tap on a scene to continue with your video creation
+                  </Text>
+                  {isPublicAvatar && (
+                    <Text className="text-white/60 text-sm font-sfpro-regular bg-white/10 px-3 py-1 rounded-full">
+                      From Database
+                    </Text>
+                  )}
+                </View>
                 {renderSceneGrid()}
               </>
             )}
 
-            {!isLoading && scenes.length === 0 && !hasGenerated && (
+            {!isLoading && scenes.length === 0 && (
               <View className="items-center py-12">
                 <Text className="text-white/70 text-lg text-center font-sfpro-regular leading-relaxed">
-                  No scenes available. Please try generating scenes for this avatar.
+                  {isPublicAvatar 
+                    ? "No scenes available for this avatar yet." 
+                    : "No scenes available. Please try generating scenes for this avatar."
+                  }
                 </Text>
               </View>
             )}
           </ScrollView>
 
-          {!isLoading && scenes.length > 0 && totalGenerated < 5 && (
+          {!isLoading && !isPublicAvatar && scenes.length > 0 && totalGenerated < 5 && (
             <View className="px-8 pb-8">
               <WhiteButton
                 title="Retry Failed Scenes"
