@@ -26,6 +26,8 @@ import WhiteButton from '../components/WhiteButton';
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const maxImageWidth = (screenWidth * 0.85) / 2 - 10; 
 const imageHeight = maxImageWidth * (16 / 9); // Calculate 9:16 aspect ratio height
+const popularAvatarWidth = (screenWidth * 0.85) / 3 - 8;
+const popularAvatarHeight = popularAvatarWidth * (4 / 3); 
 
 type HomeScreenNavigationProp = StackNavigationProp<MainStackParamList, 'Home'>;
 
@@ -94,7 +96,13 @@ export default function HomeScreen() {
   };
 
   const handleAvatarSelect = (avatar: Avatar) => {
-    setSelectedAvatar(avatar);
+    // If the same avatar is selected again, deselect it
+    if (selectedAvatar?.id === avatar.id) {
+      setSelectedAvatar(null);
+    } else {
+      // Otherwise, select the new avatar
+      setSelectedAvatar(avatar);
+    }
     setIsFullScreenVisible(false);
   };
 
@@ -121,28 +129,35 @@ export default function HomeScreen() {
     }
   };
 
-  const renderAvatarGrid = (items: Avatar[]) => {
+  const renderAvatarGrid = (items: Avatar[], isPopular: boolean = false) => {
+    const itemWidth = isPopular ? popularAvatarWidth : maxImageWidth;
+    const itemHeight = isPopular ? popularAvatarHeight : imageHeight;
+    const containerClass = isPopular ? "justify-between" : "justify-between";
+    
     return (
       <View className="mt-6">
-        <View className="flex-row flex-wrap justify-between">
+        <View className={`flex-row flex-wrap ${containerClass}`}>
           {items.map((avatar) => {
             const isSelected = selectedAvatar?.id === avatar.id;
             return (
               <TouchableOpacity 
                 key={avatar.id} 
                 className="mb-4" 
-                style={{ width: maxImageWidth }}
+                style={{ width: itemWidth }}
                 onPress={() => handleAvatarSelect(avatar)}
                 activeOpacity={0.8}
               >
                 {avatar.imageUrl ? (
                   <View>
                     <Image
-                      source={{ uri: avatar.imageUrl }}
+                      source={{ 
+                        uri: avatar.imageUrl,
+                        cache: 'reload'
+                      }}
                       style={{
-                        width: maxImageWidth,
-                        height: imageHeight, // Changed from maxImageWidth to imageHeight
-                        borderRadius: 12,
+                        width: itemWidth,
+                        height: itemHeight,
+                        borderRadius: isPopular ? 8 : 12,
                         backgroundColor: 'rgba(255, 255, 255, 0.1)',
                         borderWidth: isSelected ? 3 : 0,
                         borderColor: isSelected ? '#FFFFFF' : 'transparent'
@@ -150,16 +165,23 @@ export default function HomeScreen() {
                       resizeMode="cover"
                       onError={(error) => {
                         console.error(`Avatar ${avatar.id} failed to load:`, error.nativeEvent.error);
+                        console.error('Failed URL:', avatar.imageUrl);
+                      }}
+                      onLoad={() => {
+                        console.log(`Avatar ${avatar.id} loaded successfully`);
+                      }}
+                      onLoadStart={() => {
+                        console.log(`Avatar ${avatar.id} started loading`);
                       }}
                     />
-                  
+                    
                   </View>
                 ) : (
                   <View 
                     style={{
-                      width: maxImageWidth,
-                      height: imageHeight, 
-                      borderRadius: 12,
+                      width: itemWidth,
+                      height: itemHeight, 
+                      borderRadius: isPopular ? 8 : 12,
                       backgroundColor: 'rgba(255, 255, 255, 0.1)',
                       borderWidth: isSelected ? 3 : 0,
                       borderColor: isSelected ? '#FFFFFF' : 'transparent'
@@ -253,60 +275,51 @@ export default function HomeScreen() {
   const renderBottomSection = () => {
     if (selectedAvatar) {
       return (
-        <View className="bg-[#FF5555] px-8 pb-8 pt-6">
+        <View className="bg-[#FF5555] px-8 pb-2 pt-6">
           <WhiteButton
             title={selectedAvatar.isPublic ? "Continue with Selected Avatar" : "Continue"}
             onPress={handleNextButton}
           />
-          {selectedAvatar.isPublic && (
-            <Text className="text-white/80 text-sm text-center mt-2 font-sfpro-regular">
-              Scenes will load instantly from database
+         
+        </View>
+      );
+    }
+
+    return (
+      <View className="bg-[#FF5555] px-8 pb-8 pt-6">
+        <View className="flex-row items-center gap-x-3">
+          <TextInput
+            className="flex-1 bg-white/10 border border-white/20 rounded-2xl px-6 text-white text-base font-sfpro-regular py-5"
+            style={{ 
+              textAlignVertical: 'center', 
+              includeFontPadding: false,
+              lineHeight: 16
+            }}
+            placeholder="Describe the avatar you want..."
+            placeholderTextColor="rgba(255, 255, 255, 0.6)"
+            value={inputText}
+            onChangeText={setInputText}
+            maxLength={500}
+            editable={!isLoading}
+          />
+          <TouchableOpacity
+            className={`w-14 h-14 rounded-full items-center justify-center border-2 ${
+              inputText.trim() && !isLoading
+                ? 'bg-white border-white'
+                : 'bg-white/20 border-white/30'
+            }`}
+            onPress={sendPrompt}
+            disabled={!inputText.trim() || isLoading}
+          >
+            <Text className={`text-xl font-sfpro-semibold ${
+              inputText.trim() && !isLoading ? 'text-[#FF5555]' : 'text-white/60'
+            }`}>
+              →
             </Text>
-          )}
+          </TouchableOpacity>
         </View>
-      );
-    }
-
-    if (showCustomAvatars) {
-      return (
-        <View className="bg-[#FF5555] px-8 pb-8 pt-6">
-          <View className="flex-row items-center gap-x-3">
-            <TextInput
-              className="flex-1 bg-white/10 border border-white/20 rounded-2xl px-6 text-white text-base font-sfpro-regular"
-              style={{ 
-                height: 56,
-                textAlignVertical: 'center', 
-                includeFontPadding: false,
-                lineHeight: 20
-              }}
-              placeholder="Describe the avatar you want..."
-              placeholderTextColor="rgba(255, 255, 255, 0.6)"
-              value={inputText}
-              onChangeText={setInputText}
-              maxLength={500}
-              editable={!isLoading}
-            />
-            <TouchableOpacity
-              className={`w-14 h-14 rounded-full items-center justify-center border-2 ${
-                inputText.trim() && !isLoading
-                  ? 'bg-white border-white'
-                  : 'bg-white/20 border-white/30'
-              }`}
-              onPress={sendPrompt}
-              disabled={!inputText.trim() || isLoading}
-            >
-              <Text className={`text-xl font-sfpro-semibold ${
-                inputText.trim() && !isLoading ? 'text-[#FF5555]' : 'text-white/60'
-              }`}>
-                →
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
-
-    return null;
+      </View>
+    );
   };
 
   return (
@@ -324,20 +337,21 @@ export default function HomeScreen() {
               transform: [{ translateY: slideAnim }]
             }}
           >
-            <View className="flex-row items-center justify-between px-8 py-6">
-              <View>
-                <Text className="text-white text-3xl font-sfpro-semibold">Create Avatar</Text>
-                <Text className="text-white/80 text-base font-sfpro-regular mt-1">
-                  Design your perfect AI persona
+            {/* Only show header when not creating custom avatars */}
+            {!showCustomAvatars && (
+              <View className="flex-row items-center justify-between px-8">
+                <Text className="text-white text-xl font-sfpro-semibold">
+                  Popular Avatars
                 </Text>
+                
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ProfileScreen')}
+                  className="bg-white/20 rounded-full p-3 border border-white/30"
+                >
+                  <Text className="text-white text-lg">👤</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('ProfileScreen')}
-                className="bg-white/20 rounded-full p-3 border border-white/30"
-              >
-                <Text className="text-white text-lg">👤</Text>
-              </TouchableOpacity>
-            </View>
+            )}
 
             <ScrollView 
               className="flex-1 px-8"
@@ -347,36 +361,14 @@ export default function HomeScreen() {
                 <>
                   {publicAvatars.length > 0 && (
                     <View className="mb-6">
-                      <View className="flex-row items-center justify-between mb-4">
-                        <Text className="text-white text-xl font-sfpro-semibold">
-                          Popular Avatars
-                        </Text>
-                        <Text className="text-white/60 text-sm font-sfpro-regular">
-                          Instant • Free
-                        </Text>
-                      </View>
-                      {renderAvatarGrid(publicAvatars)}
+                      {renderAvatarGrid(publicAvatars, true)}
                     </View>
                   )}
-
-                  <TouchableOpacity
-                    className="bg-white/10 border-2 border-dashed border-white/30 rounded-2xl p-8 items-center justify-center mb-6"
-                    style={{ minHeight: 120 }}
-                    onPress={() => setShowCustomAvatars(true)}
-                  >
-                    <Text className="text-white text-6xl mb-2">+</Text>
-                    <Text className="text-white text-lg font-sfpro-semibold mb-1">
-                      Create Custom Avatar
-                    </Text>
-                    <Text className="text-white/60 text-sm text-center font-sfpro-regular">
-                      Generate unique avatars from your description
-                    </Text>
-                  </TouchableOpacity>
 
                   {publicAvatars.length === 0 && (
                     <View className="items-center py-12">
                       <Text className="text-white/70 text-lg text-center font-sfpro-regular leading-relaxed">
-                        No public avatars available yet. Create your own custom avatar below!
+                        No public avatars available yet. Create your own custom avatar using the input below!
                       </Text>
                     </View>
                   )}
@@ -404,7 +396,7 @@ export default function HomeScreen() {
                   {!currentPrompt && !isLoading && (
                     <View className="items-center py-12">
                       <Text className="text-white/70 text-lg text-center font-sfpro-regular leading-relaxed">
-                        Describe your ideal avatar and we'll generate multiple variations for you to choose from
+                        Describe your ideal avatar using the input below and we'll generate multiple variations for you to choose from
                       </Text>
                     </View>
                   )}
