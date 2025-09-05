@@ -29,6 +29,26 @@ interface User {
   accessToken: string;
 }
 
+export interface CustomScene {
+  id?: number;
+  name: string;
+  description: string;
+}
+
+export interface CreateCustomScenesRequest {
+  avatarUrl: string;
+  customScenes: CustomScene[];
+}
+
+export interface CreateCustomScenesResponse {
+  success: boolean;
+  scenes: Scene[];
+  originalAvatarUrl: string;
+  totalGenerated: number;
+  totalRequested: number;
+  isCustom: boolean;
+}
+
 interface AppContextType {
   isLoading: boolean;
   hasCompletedOnboarding: boolean;
@@ -43,6 +63,7 @@ interface AppContextType {
   logout: () => Promise<void>;
   generateScenesForAvatar: (avatarUrl: string) => Promise<void>;
   getScenesForAvatar: (avatarUrl: string) => { scenes: Scene[]; totalGenerated: number; isLoading: boolean; hasGenerated: boolean };
+  generateCustomScenesForAvatar: (avatarUrl: string, customScenes: CustomScene[]) => Promise<string>;
   generateAvatarsForPrompt: (prompt: string) => Promise<void>;
   getAvatarsForPrompt: (prompt: string) => { avatars: Avatar[]; totalGenerated: number; totalRequested: number; isLoading: boolean; hasGenerated: boolean };
   loadPublicAvatars: () => Promise<void>;
@@ -333,6 +354,53 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const generateCustomScenesForAvatar = async (avatarUrl: string, customScenes: CustomScene[]): Promise<string> => {
+    const cacheKey = `${avatarUrl}_custom_${Date.now()}`;
+    
+    setScenesState(prev => ({
+      ...prev,
+      [cacheKey]: {
+        scenes: [],
+        totalGenerated: 0,
+        isLoading: true,
+        hasGenerated: false,
+      }
+    }));
+
+    try {
+      const data = await apiService.createCustomScenes(avatarUrl, customScenes);
+      
+      if (data.success) {
+        setScenesState(prev => ({
+          ...prev,
+          [cacheKey]: {
+            scenes: data.scenes,
+            totalGenerated: data.totalGenerated,
+            isLoading: false,
+            hasGenerated: true,
+          }
+        }));
+        console.log('Custom scenes generated:', data.scenes);
+        
+        return cacheKey;
+      } else {
+        throw new Error('Failed to generate custom scenes');
+      }
+    } catch (error) {
+      console.error('Error generating custom scenes:', error);
+      setScenesState(prev => ({
+        ...prev,
+        [cacheKey]: {
+          scenes: [],
+          totalGenerated: 0,
+          isLoading: false,
+          hasGenerated: false,
+        }
+      }));
+      throw error;
+    }
+  };
+
 
   const value: AppContextType = {
     isLoading,
@@ -348,6 +416,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     logout,
     generateScenesForAvatar,
     getScenesForAvatar,
+    generateCustomScenesForAvatar,
     generateAvatarsForPrompt,
     getAvatarsForPrompt,
     loadPublicAvatars,

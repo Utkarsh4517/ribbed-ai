@@ -19,8 +19,6 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../types/navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiService, TTSOptions } from '../services/api';
-import WhiteButton from '../components/WhiteButton';
-import RedButton from '../components/RedButton';
 
 type ScriptScreenNavigationProp = StackNavigationProp<MainStackParamList, 'ScriptScreen'>;
 

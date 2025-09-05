@@ -26,6 +26,7 @@ export interface Scene {
   imageUrl?: string;
   originalAvatarUrl: string;
   error?: string;
+  isCustom?: boolean;
 }
 
 export interface CreateAvatarResponse {
@@ -112,6 +113,26 @@ export interface UserJobsResponse {
     email: string;
   };
   error?: string;
+}
+
+export interface CustomScene {
+  id?: number;
+  name: string;
+  description: string;
+}
+
+export interface CreateCustomScenesRequest {
+  avatarUrl: string;
+  customScenes: CustomScene[];
+}
+
+export interface CreateCustomScenesResponse {
+  success: boolean;
+  scenes: Scene[];
+  originalAvatarUrl: string;
+  totalGenerated: number;
+  totalRequested: number;
+  isCustom: boolean;
 }
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
@@ -459,6 +480,30 @@ export const apiService = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  async createCustomScenes(avatarUrl: string, customScenes: CustomScene[]): Promise<CreateCustomScenesResponse> {
+    const response = await fetch(`${API_BASE_URL}/create-custom-scenes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        avatarUrl,
+        customScenes: customScenes.map((scene, index) => ({
+          id: scene.id || (index + 1),
+          name: scene.name,
+          description: scene.description
+        }))
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
     return response.json();
