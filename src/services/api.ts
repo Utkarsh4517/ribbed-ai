@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Endpoints from '../../endpoints';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+// const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = Endpoints.BASE_URL;
 
 export interface CreateAvatarRequest {
   prompt: string;

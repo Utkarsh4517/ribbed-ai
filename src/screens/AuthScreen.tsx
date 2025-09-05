@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppContext } from '../contexts/AppContext';
 import WhiteButton from '../components/WhiteButton';
 import RedButton from '../components/RedButton';
+import { HapticsService } from '../utils/haptics';
 
 export default function AuthScreen() {
   const { signIn, signUp } = useAppContext();
@@ -49,6 +50,7 @@ export default function AuthScreen() {
       return;
     }
 
+    HapticsService.medium();
     setIsLoading(true);
 
     try {
@@ -70,6 +72,7 @@ export default function AuthScreen() {
   };
 
   const toggleAuthMode = () => {
+    HapticsService.light();
     setIsSignUp(!isSignUp);
     setEmail('');
     setPassword('');

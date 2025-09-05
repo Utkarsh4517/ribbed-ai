@@ -21,6 +21,7 @@ import { socketService, VideoStatusUpdate } from '../services/socketService';
 import { useAppContext } from '../contexts/AppContext';
 import WhiteButton from '../components/WhiteButton';
 import RedButton from '../components/RedButton';
+import { HapticsService } from '../utils/haptics';
 
 type ProfileScreenNavigationProp = StackNavigationProp<MainStackParamList, 'ProfileScreen'>;
 
@@ -121,6 +122,7 @@ export default function ProfileScreen() {
   );
 
   const handleCancelJob = async (jobId: string) => {
+    HapticsService.warning();
     Alert.alert(
       'Cancel Video Generation',
       'Are you sure you want to cancel this video generation?',
@@ -143,6 +145,7 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteJob = async (jobId: string) => {
+    HapticsService.warning();
     Alert.alert(
       'Delete Video',
       'Are you sure you want to delete this video? This action cannot be undone.',
@@ -166,6 +169,7 @@ export default function ProfileScreen() {
 
   const handleVideoPress = async (job: VideoJob) => {
     if (job.videoUrl) {
+      HapticsService.light();
       try {
         const supported = await Linking.canOpenURL(job.videoUrl);
         if (supported) {
@@ -183,6 +187,7 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
+    HapticsService.warning();
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out?',
@@ -345,7 +350,10 @@ export default function ProfileScreen() {
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
-            onPress={() => setActiveTab(tab.key as any)}
+            onPress={() => {
+              HapticsService.selection();
+              setActiveTab(tab.key as any);
+            }}
             className={`flex-1 py-2 px-3 rounded-xl items-center ${
               activeTab === tab.key ? 'bg-white' : 'bg-transparent'
             }`}
@@ -388,7 +396,10 @@ export default function ProfileScreen() {
         >
           <View className="flex-row items-center justify-between px-8 py-6">
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
+              onPress={() => {
+                HapticsService.light();
+                navigation.goBack();
+              }}
               className="bg-white/20 rounded-full px-4 py-2 border border-white/30"
             >
               <Text className="text-white text-lg">←</Text>
@@ -402,7 +413,9 @@ export default function ProfileScreen() {
             </View>
 
             <TouchableOpacity
-              onPress={handleLogout}
+              onPress={() => {
+                handleLogout();
+              }}
               className="bg-white/20 rounded-full px-4 py-2 border border-white/30"
             >
               <Text className="text-white text-lg">⏻</Text>

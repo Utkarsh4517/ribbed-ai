@@ -19,6 +19,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { MainStackParamList } from '../types/navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiService, TTSOptions } from '../services/api';
+import { HapticsService } from '../utils/haptics';
 
 type ScriptScreenNavigationProp = StackNavigationProp<MainStackParamList, 'ScriptScreen'>;
 
@@ -70,6 +71,7 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
       return;
     }
 
+    HapticsService.medium();
     setIsGenerating(true);
     setAudioUrl(null);
 
@@ -125,7 +127,10 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
       <TouchableOpacity 
         className="flex-1 bg-black/50 justify-center items-center px-8"
         activeOpacity={1}
-        onPress={() => setShowVoiceDropdown(false)}
+        onPress={() => {
+          HapticsService.soft();
+          setShowVoiceDropdown(false);
+        }}
       >
         <TouchableOpacity 
           className="bg-white rounded-2xl p-6 w-full max-w-sm"
@@ -140,6 +145,7 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
             <TouchableOpacity
               key={voice.id}
               onPress={() => {
+                HapticsService.selection();
                 setSelectedVoice(voice.id);
                 setShowVoiceDropdown(false);
               }}
@@ -182,7 +188,10 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
             {/* Header */}
             <View className="flex-row items-center justify-between px-8 py-6">
               <TouchableOpacity
-                onPress={() => navigation.goBack()}
+                onPress={() => {
+                  HapticsService.light();
+                  navigation.goBack();
+                }}
                 className="bg-white/20 rounded-full px-5 py-2  border border-white/30"
               >
                 <Text className="text-white text-lg">←</Text>
@@ -196,7 +205,10 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
               </View>
 
               <TouchableOpacity
-                onPress={() => setShowVoiceDropdown(true)}
+                onPress={() => {
+                  HapticsService.light();
+                  setShowVoiceDropdown(true);
+                }}
                 className="bg-white/20 rounded-full px-4 py-4 border border-white/30"
               >
                 <Text className="text-white text-xs font-sfpro-medium">Voice</Text>

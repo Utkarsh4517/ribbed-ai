@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import Endpoints from '../../endpoints';
 export interface VideoStatusUpdate {
   jobId: string;
   status: 'pending' | 'in-progress' | 'completed' | 'failed' | 'cancelled';
@@ -20,7 +20,7 @@ class SocketService {
       return;
     }
 
-    this.socket = io('http://localhost:3000', {
+    this.socket = io(Endpoints.SOCKET_URL, {
       transports: ['websocket'],
       timeout: 5000,
     });

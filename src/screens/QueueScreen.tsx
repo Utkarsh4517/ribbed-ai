@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiService, VideoJob } from '../services/api';
 import { socketService, VideoStatusUpdate } from '../services/socketService';
 import WhiteButton from '../components/WhiteButton';
+import { HapticsService } from '../utils/haptics';
 import Video from 'react-native-video';
 // @ts-ignore
 import RNFS from 'react-native-fs';
@@ -172,6 +173,7 @@ export default function QueueScreen({ route }: QueueScreenProps) {
       setProgress(update.progress || 0);
 
       if (update.status === 'completed') {
+        HapticsService.success();
         setIsGenerating(false);
         Alert.alert(
           'Video Ready!',
@@ -182,6 +184,7 @@ export default function QueueScreen({ route }: QueueScreenProps) {
           ]
         );
       } else if (update.status === 'failed') {
+        HapticsService.error();
         setIsGenerating(false);
         Alert.alert('Generation Failed', update.error || 'Video generation failed');
       }
@@ -206,6 +209,7 @@ export default function QueueScreen({ route }: QueueScreenProps) {
     if (isGenerating) return;
 
     try {
+      HapticsService.medium();
       setIsGenerating(true);
       setProgress(0);
       setStatusMessage('Submitting video generation request...');
@@ -243,6 +247,7 @@ export default function QueueScreen({ route }: QueueScreenProps) {
   const handleCancelGeneration = async () => {
     if (!currentJob || !['pending', 'in-progress'].includes(currentJob.status)) return;
 
+    HapticsService.warning();
     Alert.alert(
       'Cancel Generation',
       'Are you sure you want to cancel the video generation?',
@@ -364,7 +369,9 @@ export default function QueueScreen({ route }: QueueScreenProps) {
         )}
         {isActive && (
           <TouchableOpacity
-            onPress={handleCancelGeneration}
+            onPress={() => {
+              handleCancelGeneration();
+            }}
             className="bg-white/20 border border-white/30 rounded-2xl p-3 items-center mb-4"
           >
             <Text className="text-white font-sfpro-medium">Cancel Generation</Text>
@@ -382,7 +389,10 @@ export default function QueueScreen({ route }: QueueScreenProps) {
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-white text-lg font-sfpro-semibold">Recent Videos</Text>
           <TouchableOpacity
-            onPress={() => navigation.navigate('ProfileScreen')}
+            onPress={() => {
+              HapticsService.light();
+              navigation.navigate('ProfileScreen');
+            }}
             className="bg-white/20 rounded-full px-4 py-2 border border-white/30"
           >
             <Text className="text-white text-sm font-sfpro-medium">View All</Text>
@@ -399,6 +409,7 @@ export default function QueueScreen({ route }: QueueScreenProps) {
               }`}
               onPress={() => {
                 if (job.status === 'completed' && job.videoUrl) {
+                  HapticsService.light();
                   setCurrentJob(job);
                 }
               }}
@@ -441,7 +452,10 @@ export default function QueueScreen({ route }: QueueScreenProps) {
             <>
               <View className="flex-row items-center justify-between px-4 py-6">
                 <TouchableOpacity
-                  onPress={() => navigation.goBack()}
+                  onPress={() => {
+                    HapticsService.light();
+                    navigation.goBack();
+                  }}
                   className="bg-white/20 rounded-full px-5 py-2 border border-white/30"
                 >
                   <Text className="text-white text-lg">←</Text>
@@ -455,7 +469,10 @@ export default function QueueScreen({ route }: QueueScreenProps) {
                 </View>
 
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('ProfileScreen')}
+                  onPress={() => {
+                    HapticsService.light();
+                    navigation.navigate('ProfileScreen');
+                  }}
                   className="bg-white/20 rounded-full p-3 border border-white/30"
                 >
                   <Text className="text-white text-sm font-sfpro-medium">Profile</Text>
@@ -496,7 +513,10 @@ export default function QueueScreen({ route }: QueueScreenProps) {
           {currentJob?.status === 'completed' && currentJob?.videoUrl && (
             <View className="absolute top-12 left-8 z-10">
               <TouchableOpacity
-                onPress={() => navigation.goBack()}
+                onPress={() => {
+                  HapticsService.light();
+                  navigation.goBack();
+                }}
                 className="bg-white/20 rounded-full p-3 border border-white/30"
               >
                 <Text className="text-white text-lg">←</Text>

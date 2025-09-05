@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppContext } from '../contexts/AppContext';
 import { Scene, CustomScene } from '../services/api';
 import WhiteButton from '../components/WhiteButton';
+import { HapticsService } from '../utils/haptics';
 
 const { width: screenWidth } = Dimensions.get('window');
 const maxImageWidth = (screenWidth * 0.85) / 2 - 10;
@@ -101,6 +102,7 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
   };
 
   const handleSceneSelect = async (scene: Scene) => {
+    HapticsService.light();
     setSelectedScene(scene);
     if (!isPublicAvatar && avatar && scenes.length > 0) {
       try {
@@ -121,6 +123,7 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
       return;
     }
 
+    HapticsService.medium();
     const trimmedInput = customSceneInput.trim();
     setIsGeneratingCustom(true);
 
@@ -150,7 +153,10 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
           className={`flex-1 py-2 px-4 rounded-full ${
             viewMode === 'preset' ? 'bg-white/20' : ''
           }`}
-          onPress={() => setViewMode('preset')}
+          onPress={() => {
+            HapticsService.selection();
+            setViewMode('preset');
+          }}
         >
           <Text className={`text-center font-sfpro-medium ${
             viewMode === 'preset' ? 'text-white' : 'text-white/60'
@@ -162,7 +168,10 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
           className={`flex-1 py-2 px-4 rounded-full ${
             viewMode === 'custom' ? 'bg-white/20' : ''
           }`}
-          onPress={() => setViewMode('custom')}
+          onPress={() => {
+            HapticsService.selection();
+            setViewMode('custom');
+          }}
         >
           <Text className={`text-center font-sfpro-medium ${
             viewMode === 'custom' ? 'text-white' : 'text-white/60'
@@ -321,7 +330,11 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
                   ? 'bg-white border-white'
                   : 'bg-white/20 border-white/30'
               }`}
-              onPress={generateCustomScene}
+              onPress={() => {
+                if (customSceneInput.trim() && !isGeneratingCustom) {
+                  generateCustomScene();
+                }
+              }}
               disabled={!customSceneInput.trim() || isGeneratingCustom}
             >
               <Text className={`text-xl font-sfpro-semibold ${
@@ -372,7 +385,10 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
                 </Text>
               </View>
               <TouchableOpacity
-                onPress={() => navigation.goBack()}
+                onPress={() => {
+                  HapticsService.light();
+                  navigation.goBack();
+                }}
                 className="bg-white/20 rounded-full px-5 py-2 border border-white/30"
               >
                 <Text className="text-white text-lg">←</Text>

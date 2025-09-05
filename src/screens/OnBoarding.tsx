@@ -8,6 +8,7 @@ import {
 import { useAppContext } from '../contexts/AppContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WhiteButton from '../components/WhiteButton';
+import { HapticsService } from '../utils/haptics';
 
 
 interface OnboardingStep {
@@ -76,6 +77,7 @@ const OnboardingScreen: React.FC = () => {
 
   const handleNext = () => {
     if (isAnimating) return;
+    HapticsService.light();
     setIsAnimating(true);
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -109,6 +111,7 @@ const OnboardingScreen: React.FC = () => {
           });
         }, 50);
       } else {
+        HapticsService.success();
         completeOnboarding();
       }
     });

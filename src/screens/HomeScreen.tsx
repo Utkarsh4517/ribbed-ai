@@ -22,6 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MainStackParamList } from '../types/navigation';
 import { useAppContext } from '../contexts/AppContext';
 import WhiteButton from '../components/WhiteButton';
+import { HapticsService } from '../utils/haptics';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const maxImageWidth = (screenWidth * 0.85) / 2 - 10; 
@@ -69,6 +70,7 @@ export default function HomeScreen() {
 
   const sendPrompt = async () => {
     if (!inputText.trim() || isLoading) return;
+    HapticsService.medium();
     const trimmedPrompt = inputText.trim();
     setCurrentPrompt(trimmedPrompt);
     setSelectedAvatar(null);
@@ -86,16 +88,19 @@ export default function HomeScreen() {
   };
 
   const openFullScreen = (avatar: Avatar) => {
+    HapticsService.light();
     setSelectedAvatar(avatar);
     setIsFullScreenVisible(true);
   };
 
   const closeFullScreen = () => {
+    HapticsService.soft();
     setIsFullScreenVisible(false);
     setSelectedAvatar(null);
   };
 
   const handleAvatarSelect = (avatar: Avatar) => {
+    HapticsService.selection();
     // If the same avatar is selected again, deselect it
     if (selectedAvatar?.id === avatar.id) {
       setSelectedAvatar(null);
@@ -344,7 +349,10 @@ export default function HomeScreen() {
                 </Text>
                 
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('ProfileScreen')}
+                  onPress={() => {
+                    HapticsService.light();
+                    navigation.navigate('ProfileScreen');
+                  }}
                   className="bg-white/20 rounded-full p-3 border border-white/30"
                 >
                   <Text className="text-white text-sm font-sfpro-medium">View Profile</Text>
@@ -382,6 +390,7 @@ export default function HomeScreen() {
                     </Text>
                     <TouchableOpacity
                       onPress={() => {
+                        HapticsService.light();
                         setShowCustomAvatars(false);
                         setCurrentPrompt('');
                         setSelectedAvatar(null);
