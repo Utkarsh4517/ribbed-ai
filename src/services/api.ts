@@ -177,7 +177,7 @@ export const apiService = {
       id: avatar.id,
       name: `Avatar ${avatar.id}`,
       appearance: avatar.appearance_description || 'Public Avatar',
-      imageUrl: avatar.image_url,
+      imageUrl: (avatar.image_url || '').trim(), // sanitize
       variation: avatar.variation_number || 1,
       originalPrompt: avatar.original_prompt,
       usageCount: avatar.usage_count,
@@ -210,7 +210,7 @@ export const apiService = {
       id: scene.id,
       name: scene.scene_name,
       description: scene.scene_description,
-      imageUrl: scene.image_url,
+      imageUrl: (scene.image_url || '').trim(), // sanitize
       originalAvatarUrl: '', // Will be set by the caller
     }));
 
