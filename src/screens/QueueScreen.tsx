@@ -8,7 +8,10 @@ import {
   Alert,
   StatusBar,
   Animated,
-  ActivityIndicator
+  ActivityIndicator,
+  Dimensions,
+  Platform,
+  PermissionsAndroid
 } from 'react-native';
 import { RouteProp, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -17,7 +20,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiService, VideoJob } from '../services/api';
 import { socketService, VideoStatusUpdate } from '../services/socketService';
 import WhiteButton from '../components/WhiteButton';
-import RedButton from '../components/RedButton';
+import Video from 'react-native-video';
+// @ts-ignore
+import RNFS from 'react-native-fs';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const videoWidth = screenWidth - 64; // Account for padding
+const videoHeight = screenHeight - 200;
 
 type QueueScreenNavigationProp = StackNavigationProp<MainStackParamList, 'QueueScreen'>;
 type QueueScreenRouteProp = RouteProp<MainStackParamList, 'QueueScreen'>;
@@ -35,13 +44,18 @@ export default function QueueScreen({ route }: QueueScreenProps) {
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   const [userJobs, setUserJobs] = useState<VideoJob[]>([]);
-
-  // Animation values
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    console.log('fadeAnim', fadeAnim);
+    console.log('slideAnim', slideAnim);
+    console.log('progressAnim', progressAnim);
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -63,6 +77,73 @@ export default function QueueScreen({ route }: QueueScreenProps) {
       useNativeDriver: false,
     }).start();
   }, [progress]);
+
+  const requestStoragePermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          {
+            title: 'Storage Permission',
+            message: 'This app needs access to storage to download videos.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const downloadVideo = async (videoUrl: string, jobId: string) => {
+    try {
+      setIsDownloading(true);
+      
+      const hasPermission = await requestStoragePermission();
+      if (!hasPermission) {
+        Alert.alert('Permission Required', 'Storage permission is required to download videos.');
+        return;
+      }
+
+      const fileName = `ribbed_video_${jobId}_${Date.now()}.mp4`;
+      const downloadPath = Platform.OS === 'ios' 
+        ? `${RNFS.DocumentDirectoryPath}/${fileName}`
+        : `${RNFS.DownloadDirectoryPath}/${fileName}`;
+
+      const downloadResult = await RNFS.downloadFile({
+        fromUrl: videoUrl,
+        toFile: downloadPath,
+        background: true,
+        discretionary: true,
+        progress: (res) => {
+          const progressPercent = (res.bytesWritten / res.contentLength) * 100;
+          console.log(`Download progress: ${progressPercent.toFixed(2)}%`);
+        }
+      }).promise;
+
+      if (downloadResult.statusCode === 200) {
+        Alert.alert(
+          'Download Complete',
+          `Video saved to ${Platform.OS === 'ios' ? 'Files app' : 'Downloads folder'}`,
+          [
+            { text: 'OK', style: 'default' }
+          ]
+        );
+      } else {
+        throw new Error('Download failed');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      Alert.alert('Download Failed', 'Failed to download the video. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const loadUserJobs = async () => {
     try {
@@ -201,11 +282,47 @@ export default function QueueScreen({ route }: QueueScreenProps) {
     }
   };
 
+  const renderVideoPlayer = (videoUrl: string, jobId: string) => {
+    return (
+      <View className="flex-1 items-center justify-center px-8">
+        <View className="bg-black rounded-2xl overflow-hidden mb-8">
+          <Video
+            source={{ uri: videoUrl }}
+            style={{ width: videoWidth, height: videoHeight }}
+            controls={true}
+            resizeMode="contain"
+            onLoad={(data) => {
+              setVideoDuration(data.duration);
+            }}
+            onProgress={(data) => {
+              setVideoProgress(data.currentTime);
+            }}
+            onEnd={() => {
+              setIsVideoPlaying(false);
+            }}
+          />
+        </View>
+        
+        {/* Download Button at Bottom */}
+        <View className="w-full">
+          <WhiteButton
+            title={isDownloading ? 'Downloading...' : 'Download Video'}
+            onPress={() => downloadVideo(videoUrl, jobId)}
+            disabled={isDownloading}
+          />
+        </View>
+      </View>
+    );
+  };
+
   const renderCurrentGeneration = () => {
     if (!currentJob) return null;
 
     const statusInfo = getStatusInfo(currentJob.status);
     const isActive = ['pending', 'in-progress'].includes(currentJob.status);
+    if (currentJob.status === 'completed' && currentJob.videoUrl) {
+      return renderVideoPlayer(currentJob.videoUrl, currentJob.id);
+    }
 
     return (
       <View className="bg-white/10 rounded-2xl p-6 border border-white/20 mb-6">
@@ -245,21 +362,13 @@ export default function QueueScreen({ route }: QueueScreenProps) {
             </View>
           </View>
         )}
-
         {isActive && (
           <TouchableOpacity
             onPress={handleCancelGeneration}
-            className="bg-white/20 border border-white/30 rounded-2xl p-3 items-center"
+            className="bg-white/20 border border-white/30 rounded-2xl p-3 items-center mb-4"
           >
             <Text className="text-white font-sfpro-medium">Cancel Generation</Text>
           </TouchableOpacity>
-        )}
-
-        {currentJob.status === 'completed' && currentJob.videoUrl && (
-          <RedButton
-            title="View Video"
-            onPress={() => Alert.alert('Video Ready!', currentJob.videoUrl!)}
-          />
         )}
       </View>
     );
@@ -283,9 +392,17 @@ export default function QueueScreen({ route }: QueueScreenProps) {
         {userJobs.slice(0, 3).map((job, index) => {
           const statusInfo = getStatusInfo(job.status);
           return (
-            <View key={job.id} className={`flex-row items-center py-3 ${
-              index < 2 ? 'border-b border-white/10' : ''
-            }`}>
+            <TouchableOpacity 
+              key={job.id} 
+              className={`flex-row items-center py-3 ${
+                index < 2 ? 'border-b border-white/10' : ''
+              }`}
+              onPress={() => {
+                if (job.status === 'completed' && job.videoUrl) {
+                  setCurrentJob(job);
+                }
+              }}
+            >
               <View className={`w-3 h-3 rounded-full mr-4 ${
                 job.status === 'completed' ? 'bg-white' :
                 job.status === 'in-progress' ? 'bg-white/70' :
@@ -302,7 +419,7 @@ export default function QueueScreen({ route }: QueueScreenProps) {
               <Text className={`text-sm font-sfpro-medium capitalize ${statusInfo.color}`}>
                 {statusInfo.text}
               </Text>
-            </View>
+            </TouchableOpacity>
           );
         })}
       </View>
@@ -320,85 +437,103 @@ export default function QueueScreen({ route }: QueueScreenProps) {
             transform: [{ translateY: slideAnim }]
           }}
         >
-          <View className="flex-row items-center justify-between px-8 py-6">
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              className="bg-white/20 rounded-full p-3 border border-white/30"
-            >
-              <Text className="text-white text-lg">←</Text>
-            </TouchableOpacity>
-            
-            <View className="items-center">
-              <Text className="text-white text-2xl font-sfpro-semibold">Generate Video</Text>
-              <Text className="text-white/80 text-sm font-sfpro-regular mt-1">
-                {scene.name}
-              </Text>
-            </View>
+          {!(currentJob?.status === 'completed' && currentJob?.videoUrl) && (
+            <>
+              <View className="flex-row items-center justify-between px-8 py-6">
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  className="bg-white/20 rounded-full p-3 border border-white/30"
+                >
+                  <Text className="text-white text-lg">←</Text>
+                </TouchableOpacity>
+                
+                <View className="items-center">
+                  <Text className="text-white text-2xl font-sfpro-semibold">Generate Video</Text>
+                  <Text className="text-white/80 text-sm font-sfpro-regular mt-1">
+                    {scene.name}
+                  </Text>
+                </View>
 
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ProfileScreen')}
-              className="bg-white/20 rounded-full p-3 border border-white/30"
-            >
-              <Text className="text-white text-lg">👤</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View className="items-center mb-8">
-            {scene.imageUrl ? (
-              <Image
-                source={{ uri: scene.imageUrl }}
-                style={{
-                  width: 160,
-                  height: 160 * (16 / 9),
-                  borderRadius: 20,
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                }}
-                resizeMode="cover"
-              />
-            ) : (
-              <View 
-                style={{
-                  width: 160,
-                  height: 160 * (16 / 9),
-                  borderRadius: 20,
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                }}
-                className="items-center justify-center border-2 border-white/20"
-              >
-                <Text className="text-white/60 text-sm font-sfpro-regular">
-                  No Image
-                </Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ProfileScreen')}
+                  className="bg-white/20 rounded-full p-3 border border-white/30"
+                >
+                  <Text className="text-white text-lg">👤</Text>
+                </TouchableOpacity>
               </View>
-            )}
-          </View>
 
-          <ScrollView 
-            className="flex-1 px-8"
-            showsVerticalScrollIndicator={false}
-          >
-            {currentJob ? (
-              renderCurrentGeneration()
-            ) : (
-              <View className="mb-6">
-                {!isGenerating ? (
-                  <WhiteButton
-                    title="Render Video"
-                    onPress={handleStartVideoGeneration}
+              <View className="items-center mb-8">
+                {scene.imageUrl ? (
+                  <Image
+                    source={{ uri: scene.imageUrl }}
+                    style={{
+                      width: 160,
+                      height: 160 * (16 / 9),
+                      borderRadius: 20,
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    }}
+                    resizeMode="cover"
                   />
                 ) : (
-                  <View className="bg-white/10 rounded-2xl p-6 border border-white/20 items-center">
-                    <ActivityIndicator size="large" color="white" />
-                    <Text className="text-white font-sfpro-medium mt-3">
-                      Starting Generation...
+                  <View 
+                    style={{
+                      width: 160,
+                      height: 160 * (16 / 9),
+                      borderRadius: 20,
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                    }}
+                    className="items-center justify-center border-2 border-white/20"
+                  >
+                    <Text className="text-white/60 text-sm font-sfpro-regular">
+                      No Image
                     </Text>
                   </View>
                 )}
               </View>
-            )}
+            </>
+          )}
 
-            {/* Recent Videos */}
-            {renderRecentVideos()}
-          </ScrollView>
+          {currentJob?.status === 'completed' && currentJob?.videoUrl && (
+            <View className="absolute top-12 left-8 z-10">
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                className="bg-white/20 rounded-full p-3 border border-white/30"
+              >
+                <Text className="text-white text-lg">←</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {currentJob?.status === 'completed' && currentJob?.videoUrl ? (
+            renderCurrentGeneration()
+          ) : (
+            <ScrollView 
+              className="flex-1 px-8"
+              showsVerticalScrollIndicator={false}
+            >
+              {currentJob ? (
+                renderCurrentGeneration()
+              ) : (
+                <View className="mb-6">
+                  {!isGenerating ? (
+                    <WhiteButton
+                      title="Render Video"
+                      onPress={handleStartVideoGeneration}
+                    />
+                  ) : (
+                    <View className="bg-white/10 rounded-2xl p-6 border border-white/20 items-center">
+                      <ActivityIndicator size="large" color="white" />
+                      <Text className="text-white font-sfpro-medium mt-3">
+                        Starting Generation...
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </ScrollView>
+          )}
+
+          {renderRecentVideos()}
         </Animated.View>
       </SafeAreaView>
     </>
