@@ -7,10 +7,10 @@ import {
   Image, 
   Alert, 
   RefreshControl,
-  Modal,
   StatusBar,
   Animated,
-  ActivityIndicator
+  ActivityIndicator,
+  Linking
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -42,8 +42,6 @@ export default function ProfileScreen() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<VideoJob | null>(null);
-  const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -166,10 +164,19 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleVideoPress = (job: VideoJob) => {
+  const handleVideoPress = async (job: VideoJob) => {
     if (job.videoUrl) {
-      setSelectedVideo(job);
-      setIsVideoModalVisible(true);
+      try {
+        const supported = await Linking.canOpenURL(job.videoUrl);
+        if (supported) {
+          await Linking.openURL(job.videoUrl);
+        } else {
+          Alert.alert('Error', 'Unable to open video link');
+        }
+      } catch (error) {
+        console.error('Error opening video:', error);
+        Alert.alert('Error', 'Failed to open video');
+      }
     } else {
       Alert.alert('Video Not Ready', 'This video is still being processed.');
     }
@@ -238,6 +245,7 @@ export default function ProfileScreen() {
         className="bg-white/10 rounded-2xl p-4 mb-4 border border-white/20"
         onPress={() => handleVideoPress(job)}
         activeOpacity={0.8}
+        disabled={!job.videoUrl}
       >
         <View className="flex-row">
           <View className="mr-4">
@@ -270,6 +278,9 @@ export default function ProfileScreen() {
               <Text className={`text-sm font-sfpro-medium ${statusInfo.color}`}>
                 {statusInfo.text}
               </Text>
+              {job.videoUrl && (
+                <Text className="text-white/60 text-xs font-sfpro-regular ml-2">• Tap to play</Text>
+              )}
             </View>
 
             <Text className="text-white/60 text-xs font-sfpro-regular">
@@ -350,49 +361,6 @@ export default function ProfileScreen() {
     </View>
   );
 
-  const renderVideoModal = () => (
-    <Modal
-      visible={isVideoModalVisible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={() => setIsVideoModalVisible(false)}
-    >
-      <View className="flex-1 bg-black/80 items-center justify-center px-8">
-        <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
-          <Text className="text-gray-800 text-lg font-sfpro-semibold mb-4 text-center">
-            {selectedVideo?.sceneData.name}
-          </Text>
-          
-          {selectedVideo?.videoUrl ? (
-            <View className="mb-4">
-              <RedButton
-                title="Open Video"
-                onPress={() => {
-                  Alert.alert('Video URL', selectedVideo.videoUrl!);
-                }}
-              />
-              
-              <Text className="text-gray-600 text-sm text-center mt-3 font-sfpro-regular">
-                Duration: {selectedVideo.duration?.toFixed(1)}s
-              </Text>
-            </View>
-          ) : (
-            <Text className="text-gray-600 text-center mb-4 font-sfpro-regular">
-              Video is still processing...
-            </Text>
-          )}
-
-          <TouchableOpacity
-            className="bg-gray-200 rounded-2xl p-3 items-center"
-            onPress={() => setIsVideoModalVisible(false)}
-          >
-            <Text className="text-gray-800 font-sfpro-medium">Close</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-
   if (isLoading) {
     return (
       <>
@@ -418,7 +386,6 @@ export default function ProfileScreen() {
             transform: [{ translateY: slideAnim }]
           }}
         >
-          {/* Header */}
           <View className="flex-row items-center justify-between px-8 py-6">
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -453,13 +420,8 @@ export default function ProfileScreen() {
               />
             }
           >
-            {/* Stats */}
             {renderStatsGrid()}
-
-            {/* Tab Bar */}
             {jobs.length > 0 && renderTabBar()}
-
-            {/* Videos List */}
             {jobs.length === 0 ? (
               <View className="bg-white/10 rounded-2xl p-8 items-center border border-white/20">
                 <Text className="text-white text-lg font-sfpro-semibold mb-2">No videos yet</Text>
@@ -478,8 +440,6 @@ export default function ProfileScreen() {
             )}
           </ScrollView>
         </Animated.View>
-
-        {renderVideoModal()}
       </SafeAreaView>
     </>
   );

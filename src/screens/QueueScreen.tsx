@@ -533,7 +533,7 @@ export default function QueueScreen({ route }: QueueScreenProps) {
             </ScrollView>
           )}
 
-          {renderRecentVideos()}
+          {/* {renderRecentVideos()} */}
         </Animated.View>
       </SafeAreaView>
     </>
