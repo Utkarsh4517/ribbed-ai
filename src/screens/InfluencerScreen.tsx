@@ -373,7 +373,7 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
               </View>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
-                className="bg-white/20 rounded-full p-3 border border-white/30"
+                className="bg-white/20 rounded-full px-5 py-2 border border-white/30"
               >
                 <Text className="text-white text-lg">←</Text>
               </TouchableOpacity>
