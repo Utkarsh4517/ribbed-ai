@@ -337,7 +337,6 @@ export default function HomeScreen() {
               transform: [{ translateY: slideAnim }]
             }}
           >
-            {/* Only show header when not creating custom avatars */}
             {!showCustomAvatars && (
               <View className="flex-row items-center justify-between px-8">
                 <Text className="text-white text-xl font-sfpro-semibold">
@@ -348,7 +347,7 @@ export default function HomeScreen() {
                   onPress={() => navigation.navigate('ProfileScreen')}
                   className="bg-white/20 rounded-full p-3 border border-white/30"
                 >
-                  <Text className="text-white text-lg">👤</Text>
+                  <Text className="text-white text-sm font-sfpro-medium">View Profile</Text>
                 </TouchableOpacity>
               </View>
             )}
