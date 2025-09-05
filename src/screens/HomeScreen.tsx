@@ -155,32 +155,28 @@ export default function HomeScreen() {
                 >
                 {avatar.imageUrl ? (
                   <View>
-                    <Image
-                      source={{ 
-                        uri: encodeURI(avatar.imageUrl.trim()),
-                        cache: 'reload',
-                        headers: { 'Cache-Control': 'no-cache' }
-                      }}
-                      style={{
-                        width: itemWidth,
-                        height: itemHeight,
-                        borderRadius: isPopular ? 8 : 12,
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        borderWidth: isSelected ? 3 : 0,
-                        borderColor: isSelected ? '#FFFFFF' : 'transparent'
-                      }}
-                      resizeMode="cover"
-                      onError={(error) => {
-                        console.error(`Avatar ${avatar.id} failed to load:`, error.nativeEvent.error);
-                        console.error('Failed URL:', encodeURI(avatar.imageUrl?.trim() || ''));
-                      }}
-                      onLoad={() => {
-                        console.log(`Avatar ${avatar.id} loaded successfully`);
-                      }}
-                      onLoadStart={() => {
-                        console.log(`Avatar ${avatar.id} started loading`);
-                      }}
-                    />
+                   <Image
+  source={{ uri: avatar.imageUrl!.trim() }}
+  style={{
+    width: itemWidth,
+    height: itemHeight,
+    borderRadius: isPopular ? 8 : 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: isSelected ? 3 : 0,
+    borderColor: isSelected ? '#FFFFFF' : 'transparent'
+  }}
+  resizeMode="cover"
+  onError={(error) => {
+    console.error(`Avatar ${avatar.id} failed to load:`, error.nativeEvent.error);
+    console.error('Failed URL:', avatar.imageUrl?.trim() || '');
+  }}
+  onLoad={() => {
+    console.log(`Avatar ${avatar.id} loaded successfully`);
+  }}
+  onLoadStart={() => {
+    console.log(`Avatar ${avatar.id} started loading`);
+  }}
+/>
                     
                   </View>
                 ) : (

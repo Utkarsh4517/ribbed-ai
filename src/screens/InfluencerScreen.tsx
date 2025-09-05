@@ -214,24 +214,20 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
             >
                            {scene.imageUrl ? (
                 <View>
-                  <Image
-                    source={{ 
-                      uri: encodeURI(scene.imageUrl.trim()),
-                      cache: 'reload',
-                      headers: { 'Cache-Control': 'no-cache' }
-                    }}
-                    style={{
-                      width: maxImageWidth,
-                      height: imageHeight,
-                      borderRadius: 12,
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                    }}
-                    resizeMode="cover"
-                    onError={(error) => {
-                      console.error(`Scene ${scene.name} failed to load:`, error.nativeEvent.error);
-                      console.error('Failed URL:', encodeURI(scene.imageUrl?.trim() || ''));
-                    }}
-                  />
+              <Image
+  source={{ uri: scene.imageUrl!.trim() }}
+  style={{
+    width: maxImageWidth,
+    height: imageHeight,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)'
+  }}
+  resizeMode="cover"
+  onError={(error) => {
+    console.error(`Scene ${scene.name} failed to load:`, error.nativeEvent.error);
+    console.error('Failed URL:', scene.imageUrl?.trim() || '');
+  }}
+/>
                   {scene.isCustom && (
                     <View className="absolute top-2 right-2 bg-white/20 px-2 py-1 rounded-full">
                       <Text className="text-white text-xs font-sfpro-medium">Custom</Text>

@@ -3,6 +3,7 @@ import { StorageService } from '../utils/storage';
 import { Scene, Avatar, apiService } from '../services/api';
 import { socketService } from '../services/socketService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Image } from 'react-native';
 
 interface ScenesState {
   [avatarUrl: string]: {
@@ -221,6 +222,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const data = await apiService.createScenes(avatarUrl);
       
       if (data.success) {
+        const urls = (data.scenes || []).map(s => s.imageUrl?.trim()).filter(Boolean) as string[];
+        urls.forEach(u => Image.prefetch(u));
         setScenesState(prev => ({
           ...prev,
           [avatarUrl]: {
@@ -230,8 +233,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             hasGenerated: true,
           }
         }));
-        console.log('Scenes generated:', data.scenes);
-        
       } else {
         throw new Error('Failed to generate scenes');
       }
@@ -281,6 +282,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const data = await apiService.createAvatar(trimmedPrompt);
       
       if (data.success) {
+        const urls = (data.avatars || []).map(a => a.imageUrl?.trim()).filter(Boolean) as string[];
+        urls.forEach(u => Image.prefetch(u));
         setAvatarsState(prev => ({
           ...prev,
           [trimmedPrompt]: {
@@ -371,6 +374,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const data = await apiService.createCustomScenes(avatarUrl, customScenes);
       
       if (data.success) {
+        const urls = (data.scenes || []).map(s => s.imageUrl?.trim()).filter(Boolean) as string[];
+        urls.forEach(u => Image.prefetch(u));
         setScenesState(prev => ({
           ...prev,
           [cacheKey]: {
@@ -381,7 +386,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }
         }));
         console.log('Custom scenes generated:', data.scenes);
-        
         return cacheKey;
       } else {
         throw new Error('Failed to generate custom scenes');

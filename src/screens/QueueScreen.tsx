@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
   Dimensions,
   Platform,
-  PermissionsAndroid
+  PermissionsAndroid,
+  Linking
 } from 'react-native';
 import { RouteProp, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -143,6 +144,21 @@ export default function QueueScreen({ route }: QueueScreenProps) {
       Alert.alert('Download Failed', 'Failed to download the video. Please try again.');
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const openVideoInBrowser = async (videoUrl: string) => {
+    try {
+      const supported = await Linking.canOpenURL(videoUrl);
+      if (supported) {
+        await Linking.openURL(videoUrl);
+        HapticsService.light();
+      } else {
+        Alert.alert('Error', 'Unable to open video URL in browser.');
+      }
+    } catch (error) {
+      console.error('Error opening video URL:', error);
+      Alert.alert('Error', 'Failed to open video in browser.');
     }
   };
 
@@ -290,7 +306,7 @@ export default function QueueScreen({ route }: QueueScreenProps) {
   const renderVideoPlayer = (videoUrl: string, jobId: string) => {
     return (
       <View className="flex-1 items-center justify-center px-8">
-        <View className="bg-black rounded-2xl overflow-hidden mb-8">
+        <View className="bg-black rounded-3xl overflow-hidden mb-8">
           <Video
             source={{ uri: videoUrl }}
             style={{ width: videoWidth, height: videoHeight }}
@@ -308,12 +324,10 @@ export default function QueueScreen({ route }: QueueScreenProps) {
           />
         </View>
         
-        {/* Download Button at Bottom */}
         <View className="w-full">
           <WhiteButton
-            title={isDownloading ? 'Downloading...' : 'Download Video'}
-            onPress={() => downloadVideo(videoUrl, jobId)}
-            disabled={isDownloading}
+            title="Open Video In Browser"
+            onPress={() => openVideoInBrowser(videoUrl)}
           />
         </View>
       </View>
@@ -510,19 +524,19 @@ export default function QueueScreen({ route }: QueueScreenProps) {
             </>
           )}
 
-          {currentJob?.status === 'completed' && currentJob?.videoUrl && (
+          {/* {currentJob?.status === 'completed' && currentJob?.videoUrl && (
             <View className="absolute top-12 left-8 z-10">
               <TouchableOpacity
                 onPress={() => {
                   HapticsService.light();
                   navigation.goBack();
                 }}
-                className="bg-white/20 rounded-full p-3 border border-white/30"
+                className="bg-white/20 rounded-full px-5 py-2 border border-white/30"
               >
                 <Text className="text-white text-lg">←</Text>
               </TouchableOpacity>
             </View>
-          )}
+          )} */}
 
           {currentJob?.status === 'completed' && currentJob?.videoUrl ? (
             renderCurrentGeneration()
