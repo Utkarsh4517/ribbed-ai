@@ -150,14 +150,16 @@ export default function HomeScreen() {
                 className="mb-4" 
                 style={{ width: itemWidth }}
                 onPress={() => handleAvatarSelect(avatar)}
+                onLongPress={() => openFullScreen(avatar)}
                 activeOpacity={0.8}
-              >
+                >
                 {avatar.imageUrl ? (
                   <View>
                     <Image
                       source={{ 
-                        uri: avatar.imageUrl,
-                        cache: 'reload'
+                        uri: encodeURI(avatar.imageUrl.trim()),
+                        cache: 'reload',
+                        headers: { 'Cache-Control': 'no-cache' }
                       }}
                       style={{
                         width: itemWidth,
@@ -170,7 +172,7 @@ export default function HomeScreen() {
                       resizeMode="cover"
                       onError={(error) => {
                         console.error(`Avatar ${avatar.id} failed to load:`, error.nativeEvent.error);
-                        console.error('Failed URL:', avatar.imageUrl);
+                        console.error('Failed URL:', encodeURI(avatar.imageUrl?.trim() || ''));
                       }}
                       onLoad={() => {
                         console.log(`Avatar ${avatar.id} loaded successfully`);
@@ -252,6 +254,14 @@ export default function HomeScreen() {
         <StatusBar hidden />
         <TouchableWithoutFeedback onPress={closeFullScreen}>
           <View className="flex-1 bg-black bg-opacity-90 items-center justify-center">
+            <TouchableOpacity
+              onPress={closeFullScreen}
+              className="absolute top-12 right-6 z-10 bg-black/50 rounded-full p-3"
+              style={{ zIndex: 1000 }}
+            >
+              <Text className="text-white text-2xl font-sfpro-regular">×</Text>
+            </TouchableOpacity>
+            
             <TouchableWithoutFeedback onPress={() => {}}>
               <View className="items-center">
                 <Image
@@ -263,12 +273,7 @@ export default function HomeScreen() {
                   }}
                   resizeMode="contain"
                 />
-                <Text className="text-white text-lg mt-4 font-sfpro-semibold">
-                  Variation {selectedAvatar.variation}
-                </Text>
-                <Text className="text-white/70 text-sm mt-2 text-center px-4 font-sfpro-regular">
-                  Tap anywhere to close
-                </Text>
+               
               </View>
             </TouchableWithoutFeedback>
           </View>
@@ -369,6 +374,9 @@ export default function HomeScreen() {
                   {publicAvatars.length > 0 && (
                     <View className="mb-6">
                       {renderAvatarGrid(publicAvatars, true)}
+                      <Text className="text-white/50 text-xs text-center mt-4 font-sfpro-regular">
+                        Tip: Long press on any image to view it in full screen
+                      </Text>
                     </View>
                   )}
 
@@ -414,6 +422,9 @@ export default function HomeScreen() {
                   {!isLoading && avatars.length > 0 && (
                     <>
                       {renderAvatarGrid(avatars)}
+                      <Text className="text-white/50 text-xs text-center mt-4 font-sfpro-regular">
+                        💡 Tip: Long press on any image to view it in full screen
+                      </Text>
                     </>
                   )}
                 </>

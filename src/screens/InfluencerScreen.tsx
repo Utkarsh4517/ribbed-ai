@@ -11,7 +11,9 @@ import {
   Animated,
   TextInput,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Modal,
+  TouchableWithoutFeedback
 } from 'react-native';
 import { RouteProp, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -22,7 +24,7 @@ import { Scene, CustomScene } from '../services/api';
 import WhiteButton from '../components/WhiteButton';
 import { HapticsService } from '../utils/haptics';
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const maxImageWidth = (screenWidth * 0.85) / 2 - 10;
 const imageHeight = maxImageWidth * (16 / 9); 
 
@@ -45,6 +47,8 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
   const [customSceneInput, setCustomSceneInput] = useState('');
   const [customScenesKey, setCustomScenesKey] = useState<string | null>(null);
   const [isGeneratingCustom, setIsGeneratingCustom] = useState(false);
+  const [selectedSceneForFullScreen, setSelectedSceneForFullScreen] = useState<Scene | null>(null);
+  const [isFullScreenVisible, setIsFullScreenVisible] = useState(false);
 
   const { scenes: generatedScenes, totalGenerated, isLoading: contextLoading, hasGenerated } = 
     getScenesForAvatar(avatar.imageUrl || '');
@@ -146,6 +150,18 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
     }
   };
 
+  const openFullScreen = (scene: Scene) => {
+    HapticsService.light();
+    setSelectedSceneForFullScreen(scene);
+    setIsFullScreenVisible(true);
+  };
+
+  const closeFullScreen = () => {
+    HapticsService.soft();
+    setIsFullScreenVisible(false);
+    setSelectedSceneForFullScreen(null);
+  };
+
   const renderModeToggle = () => {
     return (
       <View className="flex-row bg-white/10 rounded-full p-1 mb-4">
@@ -193,12 +209,17 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
               className="mb-4" 
               style={{ width: maxImageWidth }}
               onPress={() => handleSceneSelect(scene)}
+              onLongPress={() => openFullScreen(scene)}
               activeOpacity={0.8}
             >
-              {scene.imageUrl ? (
+                           {scene.imageUrl ? (
                 <View>
                   <Image
-                    source={{ uri: scene.imageUrl }}
+                    source={{ 
+                      uri: encodeURI(scene.imageUrl.trim()),
+                      cache: 'reload',
+                      headers: { 'Cache-Control': 'no-cache' }
+                    }}
                     style={{
                       width: maxImageWidth,
                       height: imageHeight,
@@ -208,6 +229,7 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
                     resizeMode="cover"
                     onError={(error) => {
                       console.error(`Scene ${scene.name} failed to load:`, error.nativeEvent.error);
+                      console.error('Failed URL:', encodeURI(scene.imageUrl?.trim() || ''));
                     }}
                   />
                   {scene.isCustom && (
@@ -242,6 +264,9 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
             </TouchableOpacity>
           ))}
         </View>
+        <Text className="text-white/50 text-xs text-center mt-4 font-sfpro-regular">
+          Tip: Long press on any image to view it in full screen
+        </Text>
       </View>
     );
   };
@@ -362,6 +387,47 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
     return null;
   };
 
+  const renderFullScreenModal = () => {
+    if (!selectedSceneForFullScreen) return null;
+
+    return (
+      <Modal
+        visible={isFullScreenVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeFullScreen}
+      >
+        <StatusBar hidden />
+        <TouchableWithoutFeedback onPress={closeFullScreen}>
+          <View className="flex-1 bg-black bg-opacity-90 items-center justify-center">
+            <TouchableOpacity
+              onPress={closeFullScreen}
+              className="absolute top-12 right-6 z-10 bg-black/50 rounded-full p-3"
+              style={{ zIndex: 1000 }}
+            >
+              <Text className="text-white text-2xl font-sfpro-regular">×</Text>
+            </TouchableOpacity>
+            
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <View className="items-center">
+                <Image
+                  source={{ uri: selectedSceneForFullScreen.imageUrl }}
+                  style={{
+                    width: screenWidth * 0.9,
+                    height: screenHeight * 0.7,
+                    borderRadius: 12,
+                  }}
+                  resizeMode="contain"
+                />
+                
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    );
+  };
+
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#FF5555" />
@@ -421,6 +487,8 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
 
           {renderBottomSection()}
         </KeyboardAvoidingView>
+        
+        {renderFullScreenModal()}
       </SafeAreaView>
     </>
   );

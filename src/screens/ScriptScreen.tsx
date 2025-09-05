@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
-  ActivityIndicator // Add ActivityIndicator import
+  ActivityIndicator 
 } from 'react-native';
 import { RouteProp, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -90,7 +90,6 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
         setAudioUrl(result.audioUrl);
         console.log('Audio URL:', result.audioUrl);
         
-        // Automatically navigate to QueueScreen when audio is ready
         navigation.navigate('QueueScreen', { 
           scene: scene,
           audioUrl: result.audioUrl 
@@ -185,7 +184,6 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
               transform: [{ translateY: slideAnim }]
             }}
           >
-            {/* Header */}
             <View className="flex-row items-center justify-between px-8 py-6">
               <TouchableOpacity
                 onPress={() => {
@@ -215,7 +213,6 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
               </TouchableOpacity>
             </View>
 
-            {/* Scene Image - Centered */}
             <View className="items-center mb-8">
               {scene.imageUrl ? (
                 <Image
@@ -270,9 +267,9 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
                 
                 <View className="flex-row justify-between items-center mt-3">
                   <Text className="text-xs text-white/60 font-sfpro-regular">
-                    {scriptText.length}/1000 characters (Should not be more than 30 seconds)
+                    {scriptText.length}/500 characters (Should not be more than 30 seconds)
                   </Text>
-                  {scriptText.length > 900 && (
+                  {scriptText.length > 400 && (
                     <Text className="text-xs text-white/80 font-sfpro-medium">
                       Approaching limit
                     </Text>
@@ -281,7 +278,6 @@ export default function ScriptScreen({ route }: { route: RouteProp<MainStackPara
               </View>
             </ScrollView>
 
-            {/* Bottom Actions */}
             <View className="px-8 pb-8">
               <TouchableOpacity
                 onPress={handleGenerateSpeech}
