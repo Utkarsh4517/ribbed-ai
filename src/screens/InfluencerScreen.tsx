@@ -155,7 +155,7 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
           <Text className={`text-center font-sfpro-medium ${
             viewMode === 'preset' ? 'text-white' : 'text-white/60'
           }`}>
-            {isPublicAvatar ? 'Database Scenes' : 'Preset Scenes'}
+            {isPublicAvatar ? 'Our Scenes' : 'Preset Scenes'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -393,16 +393,7 @@ export default function InfluencerScreen({ route }: { route: RouteProp<MainStack
                     <Text className="text-white/80 text-base font-sfpro-regular">
                       Tap on a scene to continue with your video creation
                     </Text>
-                    {viewMode === 'preset' && isPublicAvatar && (
-                      <Text className="text-white/60 text-sm font-sfpro-regular bg-white/10 px-3 py-1 rounded-full">
-                        From Database
-                      </Text>
-                    )}
-                    {viewMode === 'custom' && (
-                      <Text className="text-white/60 text-sm font-sfpro-regular bg-white/10 px-3 py-1 rounded-full">
-                        Custom
-                      </Text>
-                    )}
+                    
                   </View>
                   {renderSceneGrid()}
                 </>
