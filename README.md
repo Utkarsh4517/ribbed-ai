@@ -1,97 +1,78 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# 📱 Ribbed AI Mobile App
 
-# Getting Started
+A React Native app for creating TikTok-style UGC videos with AI-generated avatars and custom voices.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 🚀 Quick Start
 
-## Step 1: Start Metro
+### Prerequisites
+- Node.js >= 20
+- React Native development environment ([Setup Guide](https://reactnative.dev/docs/set-up-your-environment))
+- iOS: Xcode and CocoaPods
+- Android: Android Studio
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+### Installation
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+```bash
+# Install dependencies
+npm install
 
-```sh
-# Using npm
+# iOS setup (first time only)
+bundle install
+bundle exec pod install
+
+# Start Metro bundler
 npm start
 
-# OR using Yarn
-yarn start
+# Run on device/simulator
+npx react-native run-ios     # iOS
+npm react-native run-android # Android
 ```
 
-## Step 2: Build and run your app
+## App Structure
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+```
+src/
+├── components/     # Reusable UI components
+├── contexts/       # React Context providers
+├── navigation/     # Navigation setup
+├── screens/        # App screens
+├── services/       # API and socket services
+├── types/          # TypeScript definitions
+└── utils/          # Helper functions
 ```
 
-### iOS
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+## 🔧 Configuration
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+### Backend Connection
+Create an `endpoints.ts` file in the root directory:
 
-```sh
-bundle install
+```typescript
+class Endpoints {
+  static readonly BASE_URL = 'YOUR_BACKEND_URL/api';
+  static readonly SOCKET_URL = 'YOUR_BACKEND_URL';
+}
+
+export default Endpoints;
 ```
 
-Then, and every time you update your native dependencies, run:
+Backend repo : https://github.com/Utkarsh4517/ribbed-ai-backend
 
-```sh
-bundle exec pod install
-```
+## Features
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+- **AI Avatar Creation** - Generate custom avatars from text
+- **Script to Video** - Convert text scripts to engaging videos
+- **Real-time Updates** - Live generation status via WebSockets
+- **Queue Management** - Track video generation progress
+- **Profile System** - User authentication and management
 
-```sh
-# Using npm
-npm run ios
+## Tech Stack
 
-# OR using Yarn
-yarn ios
-```
+- **React Native** - Cross-platform mobile framework
+- **TypeScript** - Type-safe development
+- **TailwindCSS** - Utility-first styling via NativeWind
+- **React Navigation** - Navigation library
+- **Socket.IO** - Real-time communication
+- **Lottie** - Beautiful animations
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
